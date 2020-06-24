@@ -23,7 +23,7 @@ buckets = []
 for i in range(1, 100):
   buckets.append(8 + 4 * i)
 
-link_file_train = "drive/My Drive/data_MLT_crop.zip";
+link_file_train = "drive/My Drive/DATA_OCR/data_MLT_crop.zip";
 archive = ZipFile(link_file_train, 'r');
 train_file = archive.namelist();
 
