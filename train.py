@@ -7,7 +7,7 @@ Created on Sep 3, 2017
 import torch, os
 import numpy as np
 import cv2
-device='cpu'
+device='cuda'
 import net_utils
 import data_gen
 from data_gen import draw_box_points
@@ -623,15 +623,15 @@ import argparse
 if __name__ == '__main__': 
   
   parser = argparse.ArgumentParser()
-  parser.add_argument('-train_list', default='sample_train_data/MLT/trainMLT.txt')
-  parser.add_argument('-ocr_feed_list', default='sample_train_data/MLT_CROPS/gt.txt')
+  parser.add_argument('-train_list', default='/content/drive/My Drive/DATA_OCR/gt_vi.txt'')
+  parser.add_argument('-ocr_feed_list', default='/content/drive/My Drive/DATA_OCR/gt_vi.txt'')
   parser.add_argument('-save_path', default='backup')
   parser.add_argument('-model', default='e2e-mlt.h5')
-  parser.add_argument('-debug', type=int, default=1)
-  parser.add_argument('-batch_size', type=int, default=1)
-  parser.add_argument('-ocr_batch_size', type=int, default=1)
-  parser.add_argument('-num_readers', type=int, default=1)
-  parser.add_argument('-cuda', type=bool, default=False)
+  parser.add_argument('-debug', type=int, default=0)
+  parser.add_argument('-batch_size', type=int, default=8)
+  parser.add_argument('-ocr_batch_size', type=int, default=256)
+  parser.add_argument('-num_readers', type=int, default=5)
+  parser.add_argument('-cuda', type=bool, default=True)
   parser.add_argument('-input_size', type=int, default=512)
   parser.add_argument('-geo_type', type=int, default=0)
   parser.add_argument('-base_lr', type=float, default=0.0001)
