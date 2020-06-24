@@ -26,7 +26,7 @@ archive = ZipFile(link_file_train, 'r');
 train_file = archive.namelist();
 list_image =[]
 for i in train_file:
-  if i.find('.jpg') != -1 :
+  if (i.find('.jpg') != -1) and (i.find('.jpeg') == -1):
     list_image.append(i)
 
 use_pyblur = 0
