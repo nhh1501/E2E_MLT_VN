@@ -21,7 +21,7 @@ import torchvision.transforms as transforms
 
 
 # link_file_train = "drive/My Drive/dataset.zip";
-link_file_train = "drive/My Drive/data_mlt.zip";
+link_file_train = "drive/My Drive/DATA_OCR/data_mlt.zip";
 archive = ZipFile(link_file_train, 'r');
 train_file = archive.namelist();
 list_image =[]
