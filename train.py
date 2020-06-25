@@ -21,7 +21,7 @@ import torch.autograd as autograd
 import torch.nn.functional as F
 # from torch_baidu_ctc import ctc_loss, CTCLoss
 import torch.nn as nn
-# from warpctc_pytorch import CTCLoss
+from warpctc_pytorch import CTCLoss
 from ocr_test_utils import print_seq_ext
 
 
@@ -278,9 +278,9 @@ def process_boxes(images, im_data, iou_pred, roi_pred, angle_pred, score_maps, g
       
       label_length = []
       label_length.append(len(gt_labels))
-      probs_sizes =  autograd.Variable(torch.IntTensor( [(labels_pred.permute(2,0,1).size()[0])] * (labels_pred.permute(2,0,1).size()[1]) ))
-      label_sizes = autograd.Variable(torch.IntTensor( torch.from_numpy(np.array(label_length)).int() ))
-      labels = autograd.Variable(torch.IntTensor( torch.from_numpy(np.array(gt_labels)).int() ))    
+      probs_sizes =  autograd.Variable(torch.IntTensor( [(labels_pred.permute(2,0,1).size()[0])] * (labels_pred.permute(2,0,1).size()[1]) )).long()
+      label_sizes = autograd.Variable(torch.IntTensor( torch.from_numpy(np.array(label_length)).int() )).long()
+      labels = autograd.Variable(torch.IntTensor( torch.from_numpy(np.array(gt_labels)).int() )).long()    
       
       loss = loss + ctc_loss(labels_pred.permute(2,0,1), labels, probs_sizes, label_sizes).to(device)
       loss = loss + ctc_loss(labels_pred2.permute(2,0,1), labels, probs_sizes, label_sizes).to(device)
@@ -384,9 +384,9 @@ def process_boxes(images, im_data, iou_pred, roi_pred, angle_pred, score_maps, g
       
       label_length = []
       label_length.append(len(gt_labels))
-      probs_sizes =  torch.IntTensor( [(labels_pred.permute(2,0,1).size()[0])] * (labels_pred.permute(2,0,1).size()[1]) )
-      label_sizes = torch.IntTensor( torch.from_numpy(np.array(label_length)).int() )
-      labels = torch.IntTensor( torch.from_numpy(np.array(gt_labels)).int() )
+      probs_sizes =  torch.IntTensor( [(labels_pred.permute(2,0,1).size()[0])] * (labels_pred.permute(2,0,1).size()[1]) ).long()
+      label_sizes = torch.IntTensor( torch.from_numpy(np.array(label_length)).int() ).long()
+      labels = torch.IntTensor( torch.from_numpy(np.array(gt_labels)).int() ).long()
       
       loss = loss + ctc_loss(labels_pred.permute(2,0,1), labels, probs_sizes, label_sizes).to(device)
       ctc_loss_count += 1
@@ -459,9 +459,16 @@ def main(opts):
   train_loss = 0
   bbox_loss, seg_loss, angle_loss = 0., 0., 0.
   cnt = 0
+  
+  
+  
+  
   ctc_loss = nn.CTCLoss()
   # ctc_loss = CTCLoss()
 
+  
+  
+  
   ctc_loss_val = 0
   ctc_loss_val2 = 0
   box_loss_val = 0
@@ -524,9 +531,9 @@ def main(opts):
       features = net.forward_features(im_data_ocr)
       labels_pred = net.forward_ocr(features)
     
-      probs_sizes =  torch.IntTensor( [(labels_pred.permute(2,0,1).size()[0])] * (labels_pred.permute(2,0,1).size()[1]) )
-      label_sizes = torch.IntTensor( torch.from_numpy(np.array(label_length)).int() )
-      labels = torch.IntTensor( torch.from_numpy(np.array(labels)).int() )
+      probs_sizes =  torch.IntTensor( [(labels_pred.permute(2,0,1).size()[0])] * (labels_pred.permute(2,0,1).size()[1]) ).long()
+      label_sizes = torch.IntTensor( torch.from_numpy(np.array(label_length)).int() ).long()
+      labels = torch.IntTensor( torch.from_numpy(np.array(labels)).int() ).long()
       loss_ocr = ctc_loss(labels_pred.permute(2,0,1), labels, probs_sizes, label_sizes) / im_data_ocr.size(0) * 0.5
       
       loss_ocr.backward()
@@ -537,6 +544,12 @@ def main(opts):
 
       clipping_value = 0.5
       torch.nn.utils.clip_grad_norm_(net.parameters(), clipping_value)
+      if opts.d1:
+        print('loss_nan', torch.isnan(loss))
+        print('loss_inf', torch.isinf(loss))
+        print('lossocr_nan', torch.isnan(loss_ocr))
+        print('lossocr_inf', torch.isinf(loss_ocr))
+        
       if not (torch.isnan(loss) or torch.isinf(loss) or torch.isnan(loss_ocr) or torch.isinf(loss_ocr)):
         optimizer.step()
         # if not np.isinf(loss.data.cpu().numpy()):
@@ -548,7 +561,8 @@ def main(opts):
       import sys, traceback
       traceback.print_exc(file=sys.stdout)
       pass
-
+    
+    cnt += 1
     if step % disp_interval == 0:
       
       if opts.debug:
@@ -623,8 +637,8 @@ import argparse
 if __name__ == '__main__': 
   
   parser = argparse.ArgumentParser()
-  parser.add_argument('-train_list', default='/content/drive/My Drive/DATA_OCR/gt_vi.txt'')
-  parser.add_argument('-ocr_feed_list', default='/content/drive/My Drive/DATA_OCR/gt_vi.txt'')
+  parser.add_argument('-train_list', default='/content/drive/My Drive/DATA_OCR/gt_vi.txt')
+  parser.add_argument('-ocr_feed_list', default='/content/drive/My Drive/DATA_OCR/gt_vi.txt')
   parser.add_argument('-save_path', default='backup')
   parser.add_argument('-model', default='e2e-mlt.h5')
   parser.add_argument('-debug', type=int, default=0)
@@ -636,7 +650,7 @@ if __name__ == '__main__':
   parser.add_argument('-geo_type', type=int, default=0)
   parser.add_argument('-base_lr', type=float, default=0.0001)
   parser.add_argument('-max_iters', type=int, default=5)
-  
+  parser.add_argument('-d1', type=int, default=1)
   args = parser.parse_args()  
   main(args)
   
