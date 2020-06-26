@@ -255,8 +255,8 @@ def generator(batch_size=4, train_list='/home/klara/klara/home/DeepSemanticText/
 
 def get_batch(num_workers, **kwargs):
   try:
-    enqueuer = GeneratorEnqueuer(generator(**kwargs), use_multiprocessing=False)
-    enqueuer.start(max_queue_size=1, workers=num_workers)
+    enqueuer = GeneratorEnqueuer(generator(**kwargs), use_multiprocessing=True)
+    enqueuer.start(max_queue_size=24, workers=num_workers)
     generator_output = None
     while True:
       while enqueuer.is_running():
