@@ -574,7 +574,7 @@ def generate_rbox(im, im_size, polys, tags, labels, vis=False):
 def generator(input_size=512, batch_size=4, train_list='/home/klara/klara/home/DeepSemanticText/resources/ims2.txt', vis=False, in_train=True, geo_type = 0):
   # image_list = np.array(get_images(train_list))
   image_list = np.array(list_image)
-  print('{} training images in {}'.format(image_list.shape[0], train_list))
+  print('{} training images in {}'.format(image_list.shape[0], 'MLT'))
   index = np.arange(0, image_list.shape[0])
 
   allow_empty = False
@@ -617,7 +617,7 @@ def generator(input_size=512, batch_size=4, train_list='/home/klara/klara/home/D
 
         allow_empty = False
         
-        print(im_name)
+#         print(im_name)
         name = os.path.basename(im_name)
         name = name[:-4]
 
@@ -787,8 +787,8 @@ def generator(input_size=512, batch_size=4, train_list='/home/klara/klara/home/D
 
 def get_batch(num_workers, **kwargs):
   try:
-    enqueuer = GeneratorEnqueuer(generator(**kwargs), use_multiprocessing=False)
-    enqueuer.start(max_queue_size=1, workers=num_workers)
+    enqueuer = GeneratorEnqueuer(generator(**kwargs), use_multiprocessing=True)
+    enqueuer.start(max_queue_size=24, workers=num_workers)
     generator_output = None
     while True:
       while enqueuer.is_running():
