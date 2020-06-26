@@ -174,12 +174,14 @@ class BasicBlockSepIn(nn.Module):
 
     return out  
   
-def iou_loss(roi_gt, byte_mask, roi_pred, box_loss_value):
+def iou_loss(roi_gt, byte_mask, roi_pred):
   d1_gt = roi_gt[:, :, :, 0][byte_mask]
   d2_gt = roi_gt[:, :, :, 1][byte_mask] 
   d3_gt = roi_gt[:, :, :, 2][byte_mask]
   d4_gt = roi_gt[:, :, :, 3][byte_mask] 
   
+  #? LEFT
+  #? d1 + d2 = height ____ d3 = width (left)
   mask3 = torch.gt(d3_gt, 0)   
   mask4 = torch.gt(d4_gt, 0)   
   d3_gt = d3_gt[mask3]
@@ -202,8 +204,10 @@ def iou_loss(roi_gt, byte_mask, roi_pred, box_loss_value):
   AABB_l = - torch.log((area_intersect_l + 1.0)/(area_union_l + 1.0))
   
   if AABB_l.dim() > 0:
-    box_loss_value =box_loss_value + torch.mean(AABB_l)
-  
+#     box_loss_value =box_loss_value + torch.mean(AABB_l)
+    box_loss_value = torch.mean(AABB_l)
+    
+  # ? d1 + d2 = width ____ d4 = height (right)
   area_gt_r = (d1_gt[mask4] + d2_gt[mask4]) * (d4_gt)
   area_pred_r = (d1_pred[mask4] + d2_pred[mask4]) * (d4_pred)
   w_union_r = torch.min(d4_gt, d4_pred)
@@ -213,7 +217,7 @@ def iou_loss(roi_gt, byte_mask, roi_pred, box_loss_value):
   AABB_r = - torch.log((area_intersect_r + 1.0)/(area_union_r + 1.0))
   if AABB_r.dim() > 0:
     box_loss_value += torch.mean(AABB_r)
-  
+  return box_loss_value
 class ModelResNetSep2(nn.Module):
   
   def recompute(self):
@@ -734,7 +738,7 @@ class ModelResNetSep_final(nn.Module):
       self.angle_loss_value =self.angle_loss_value + sin_val
       self.angle_loss_value += cos_val
 
-      iou_loss(roi_gt, byte_mask, roi_pred[0], self.box_loss_value)
+      self.box_loss_value = iou_loss(roi_gt, byte_mask, roi_pred[0])
 
       if self.multi_scale:
         byte_mask = torch.gt(F.interpolate(segm_gt.unsqueeze(1), size=(segm_pred1.size(1), segm_pred1.size(2)), mode='bilinear', align_corners=True), 0.5).squeeze(1)
@@ -751,7 +755,7 @@ class ModelResNetSep_final(nn.Module):
 
           roi_gt_s = F.interpolate(roi_gt.permute(0, 3, 1, 2), size=(segm_pred1.size(1), segm_pred1.size(2)), mode='bilinear', align_corners=True) / 2
           roi_gt_s = roi_gt_s.permute(0, 2, 3, 1)
-          iou_loss(roi_gt_s, byte_mask, roi_pred[1], self.box_loss_value)
+          self.box_loss_value += iou_loss(roi_gt_s, byte_mask, roi_pred[1])
 
     return self.segm_loss_value +  self.angle_loss_value * 2 + 0.5 * self.box_loss_value
 
