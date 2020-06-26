@@ -10,7 +10,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-device = 'cpu'
+device = 'cuda'
 
 def print_seq_ext(wf, codec):
   prev = 0
