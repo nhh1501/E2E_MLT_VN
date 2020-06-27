@@ -9,7 +9,7 @@ import math
 import random
 from zipfile import ZipFile
 from io import BytesIO,TextIOWrapper
-
+import glob
 import matplotlib
 #matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
@@ -20,14 +20,14 @@ import PIL
 import torchvision.transforms as transforms
 
 
-# link_file_train = "drive/My Drive/dataset.zip";
-link_file_train = "/content/drive/My Drive/DATA_OCR/data_mlt.zip";
-archive = ZipFile(link_file_train, 'r');
-train_file = archive.namelist();
-list_image =[]
-for i in train_file:
-  if (i.find('.jpg') != -1) and (i.find('.jpeg') == -1):
-    list_image.append(i)
+# # link_file_train = "drive/My Drive/dataset.zip";
+# link_file_train = "/content/drive/My Drive/DATA_OCR/data_mlt.zip";
+# archive = ZipFile(link_file_train, 'r');
+# train_file = archive.namelist();
+# list_image =[]
+# for i in train_file:
+#   if (i.find('.jpg') != -1) and (i.find('.jpeg') == -1):
+#     list_image.append(i)
 
 use_pyblur = 0
 
@@ -37,18 +37,26 @@ if use_pyblur == 1:
 #? load name img
 def get_images(data_path):
 
-  base_dir = os.path.dirname(data_path)
-  with open(data_path) as f:
-    files = f.readlines()
-  files = [x.strip() for x in files]
-  files_out = []
-  for x in files:
-    if len(x) == 0:
-      continue
-    if not x[0] == '/':
-      x = '{0}/{1}'.format(base_dir, x)
-    files_out.append(x)
-  return files_out
+#   base_dir = os.path.dirname(data_path)
+#   with open(data_path) as f:
+#     files = f.readlines()
+#   files = [x.strip() for x in files]
+#   files_out = []
+#   for x in files:
+#     if len(x) == 0:
+#       continue
+#     if not x[0] == '/':
+#       x = '{0}/{1}'.format(base_dir, x)
+#     files_out.append(x)
+#   return files_out
+
+  train_file = glob.glob(data_path + '/*jpg', recursive=True)
+  list_image = []
+  for i in train_file:
+    if (i.find('.jpg') != -1) and (i.find('.jpeg') == -1):
+      list_image.append(i)
+
+  return list_image
 
 def load_annoataion(p, im):
   '''
@@ -110,10 +118,10 @@ def load_gt_annoataion(p, is_icdar):
   #   return np.array(text_polys, dtype=np.float), np.array(text_tags, dtype=np.bool), labels
 
   delim = ','
-  with archive.open(p, 'r') as f:
+  with open(p, 'r',encoding ="utf-8") as f:
   # fs = archive.read(p)
     for line in f.readlines():
-      line = line.decode("utf-8").replace('\ufeff', '')
+      line = line.replace('\ufeff', '')
       splits = line.split(delim)
 
       annotation = splits
@@ -572,9 +580,9 @@ def generate_rbox(im, im_size, polys, tags, labels, vis=False):
 
 
 def generator(input_size=512, batch_size=4, train_list='/home/klara/klara/home/DeepSemanticText/resources/ims2.txt', vis=False, in_train=True, geo_type = 0):
-  # image_list = np.array(get_images(train_list))
-  image_list = np.array(list_image)
-  print('{} training images in {}'.format(image_list.shape[0], 'MLT'))
+  image_list = np.array(get_images(train_list))
+#   image_list = np.array(list_image)
+  print('{} training images in {}'.format(image_list.shape[0],train_list))
   index = np.arange(0, image_list.shape[0])
 
   allow_empty = False
@@ -609,9 +617,9 @@ def generator(input_size=512, batch_size=4, train_list='/home/klara/klara/home/D
         # if not os.path.exists(im_name):
         #   continue
 #? load image
-        # im = cv2.imread(im_name)
-        im = Image.open(BytesIO(archive.read(im_name)));
-        im = cv2.cvtColor(np.array(im), cv2.COLOR_RGB2BGR)
+        im = cv2.imread(im_name)
+#         im = Image.open(BytesIO(archive.read(im_name)));
+#         im = cv2.cvtColor(np.array(im), cv2.COLOR_RGB2BGR)
         if im is None:
           continue
 
