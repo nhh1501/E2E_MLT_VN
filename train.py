@@ -12,7 +12,6 @@ import net_utils
 import data_gen
 from data_gen import draw_box_points
 import timeit
-import cv2
 import math
 import random
 
@@ -21,7 +20,7 @@ import torch.autograd as autograd
 import torch.nn.functional as F
 # from torch_baidu_ctc import ctc_loss, CTCLoss
 import torch.nn as nn
-from warpctc_pytorch import CTCLoss
+# from warpctc_pytorch import CTCLoss
 from ocr_test_utils import print_seq_ext
 
 
@@ -33,7 +32,7 @@ lr_decay = 0.99
 momentum = 0.9
 weight_decay = 0
 batch_per_epoch = 1000
-disp_interval = 1
+disp_interval = 100
 
 norm_height = 44
 
@@ -450,9 +449,9 @@ def main(opts):
 
   data_generator = data_gen.get_batch(num_workers=opts.num_readers, 
            input_size=opts.input_size, batch_size=opts.batch_size, 
-           train_list=opts.train_list, geo_type=opts.geo_type)
+           train_list=opts.train_path, geo_type=opts.geo_type)
   
-  dg_ocr = ocr_gen.get_batch(num_workers=1,
+  dg_ocr = ocr_gen.get_batch(num_workers=2,
           batch_size=opts.ocr_batch_size, 
           train_list=opts.ocr_feed_list, in_train=True, norm_height=norm_height, rgb=True)
   
@@ -562,7 +561,7 @@ def main(opts):
       traceback.print_exc(file=sys.stdout)
       pass
     
-    cnt += 1
+    
     if step % disp_interval == 0:
       
       if opts.debug:
@@ -637,8 +636,8 @@ import argparse
 if __name__ == '__main__': 
   
   parser = argparse.ArgumentParser()
-  parser.add_argument('-train_list', default='/content/drive/My Drive/DATA_OCR/gt_vi.txt')
-  parser.add_argument('-ocr_feed_list', default='/content/drive/My Drive/DATA_OCR/gt_vi.txt')
+  parser.add_argument('-train_path', default='/content/data_mlt')
+  parser.add_argument('-ocr_feed_list', default='/content/data_MLT_crop/gt_vi.txt')
   parser.add_argument('-save_path', default='backup')
   parser.add_argument('-model', default='e2e-mlt.h5')
   parser.add_argument('-debug', type=int, default=0)
