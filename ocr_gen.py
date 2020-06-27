@@ -23,10 +23,6 @@ buckets = []
 for i in range(1, 100):
   buckets.append(8 + 4 * i)
 
-link_file_train = "/content/drive/My Drive/DATA_OCR/data_MLT_crop.zip";
-archive = ZipFile(link_file_train, 'r');
-train_file = archive.namelist();
-
 
 import unicodedata as ud
 
@@ -83,8 +79,8 @@ def get_images_zip(data_path):
 
 
 def generator(batch_size=4, train_list='/home/klara/klara/home/DeepSemanticText/resources/ims2.txt', in_train=True, rgb = False, norm_height = 32):
-  # image_list = np.array(get_images(train_list))
-  image_list = np.array(get_images_zip(train_list))
+  image_list = np.array(get_images(train_list))
+#   image_list = np.array(get_images_zip(train_list))
   print('{} training images in {}'.format(image_list.shape[0], train_list))
   index = np.arange(0, image_list.shape[0])
   
@@ -145,18 +141,18 @@ def generator(batch_size=4, train_list='/home/klara/klara/home/DeepSemanticText/
         if image_name[len(image_name) - 1] == ',':
           image_name = image_name[0:-1]    
         
-        # if not os.path.exists(image_name):
-        if not image_name in train_file:
+        if not os.path.exists(image_name):
+#         if not image_name in train_file:
           continue
         
         if rgb:
-          # im = cv2.imread(image_name)
-          im = Image.open(BytesIO(archive.read(image_name)));
-          im = cv2.cvtColor(np.array(im), cv2.COLOR_RGB2BGR)
+          im = cv2.imread(image_name)
+#           im = Image.open(BytesIO(archive.read(image_name)));
+#           im = cv2.cvtColor(np.array(im), cv2.COLOR_RGB2BGR)
         else:
-          # im = cv2.imread(image_name, cv2.IMREAD_GRAYSCALE)
-          im = Image.open(BytesIO(archive.read(image_name)));
-          im = cv2.cvtColor(np.array(im), cv2.COLOR_RGB2GRAY)
+          im = cv2.imread(image_name, cv2.IMREAD_GRAYSCALE)
+#           im = Image.open(BytesIO(archive.read(image_name)));
+#           im = cv2.cvtColor(np.array(im), cv2.COLOR_RGB2GRAY)
         if im is None:
           continue
         
