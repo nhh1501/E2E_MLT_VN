@@ -638,7 +638,7 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument('-train_path', default='/content/data_mlt')
   parser.add_argument('-ocr_feed_list', default='/content/data_MLT_crop/gt_vi.txt')
-  parser.add_argument('-save_path', default='backup')
+  parser.add_argument('-save_path', default='/content/drive/My Drive/DATA_OCR/backup')
   parser.add_argument('-model', default='e2e-mlt.h5')
   parser.add_argument('-debug', type=int, default=0)
   parser.add_argument('-batch_size', type=int, default=8)
