@@ -14,7 +14,7 @@ from data_gen import draw_box_points
 import timeit
 import math
 import random
-
+import time
 from models import ModelResNetSep2 , ModelResNetSep_final
 import torch.autograd as autograd
 import torch.nn.functional as F
@@ -434,6 +434,7 @@ def main(opts):
   if opts.cuda:
     net.to(device)
   optimizer = torch.optim.Adam(net.parameters(), lr=opts.base_lr, weight_decay=weight_decay)
+  scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,factor=0.5 ,patience=3,verbose=True)
   step_start = 0  
   if os.path.exists(opts.model):
     print('loading model from %s' % args.model)
@@ -473,10 +474,14 @@ def main(opts):
   box_loss_val = 0
   good_all = 0
   gt_all = 0
-  
+  train_loss_lr = 0
+#   ctc_loss_lr = 0
+  cntt = 0
+  time_total = 0
   
   for step in range(step_start, opts.max_iters):
     
+    now = time.time()
     # batch
     images, image_fns, score_maps, geo_maps, training_masks, gtso, lbso, gt_idxs = next(data_generator)
     im_data = net_utils.np_to_variable(images, is_cuda=opts.cuda).permute(0, 3, 1, 2)
@@ -555,6 +560,7 @@ def main(opts):
         ctc_loss_val2 += loss_ocr.item()
         # train_loss += loss.data.cpu().numpy()[0] #net.bbox_loss.data.cpu().numpy()[0]
         cnt += 1
+        cntt += 1
 
     except:
       import sys, traceback
@@ -595,6 +601,7 @@ def main(opts):
         cv2.imshow('train_mask', training_masks[0] * 255)
         cv2.waitKey(10)
       
+      train_loss_lr += (ctc_loss_val + ctc_loss_val2 + train_loss*2)
       train_loss /= cnt
       bbox_loss /= cnt
       seg_loss /= cnt
@@ -602,9 +609,16 @@ def main(opts):
       ctc_loss_val /= cnt
       ctc_loss_val2 /= cnt
       box_loss_val /= cnt
+      time_now = time.time() - now
+      time_total += time_now
+      f = open('/content/drive/My Drive/DATA_OCR/backup/loss.txt','a')
+      f.write('epoch %d[%d], loss: %.3f, bbox_loss: %.3f, seg_loss: %.3f, ang_loss: %.3f, ctc_loss: %.3f, rec: %.5f, lv2: %.3f, time: %.2f s\n' % (
+          step / batch_per_epoch, step, train_loss, bbox_loss, seg_loss, angle_loss, ctc_loss_val, good_all / max(1, gt_all), ctc_loss_val2, time_now))
+      f.close()
       try:
-        print('epoch %d[%d], loss: %.3f, bbox_loss: %.3f, seg_loss: %.3f, ang_loss: %.3f, ctc_loss: %.3f, rec: %.5f lv2 %.3f' % (
-          step / batch_per_epoch, step, train_loss, bbox_loss, seg_loss, angle_loss, ctc_loss_val, good_all / max(1, gt_all), ctc_loss_val2))
+        
+        print('epoch %d[%d], loss: %.3f, bbox_loss: %.3f, seg_loss: %.3f, ang_loss: %.3f, ctc_loss: %.3f, rec: %.5f, lv2: %.3f, time: %.2f s' % (
+          step / batch_per_epoch, step, train_loss, bbox_loss, seg_loss, angle_loss, ctc_loss_val, good_all / max(1, gt_all), ctc_loss_val2, time_now))
       except:
         import sys, traceback
         traceback.print_exc(file=sys.stdout)
@@ -615,6 +629,7 @@ def main(opts):
       bbox_loss, seg_loss, angle_loss = 0., 0., 0.
       cnt = 0
       ctc_loss_val = 0
+      ctc_loss_val2 = 0
       good_all = 0
       gt_all = 0
       box_loss_val = 0
@@ -628,7 +643,15 @@ def main(opts):
               'state_dict': net.state_dict(),
               'optimizer': optimizer.state_dict()}
       torch.save(state, save_name)
+      scheduler.step(train_loss_lr/cntt)
+      print(train_loss_lr/cntt)
+      # scheduler.step(ctc_loss_lr/cntt)
+      cntt = 0
+      train_loss_lr = 0
+      # ctc_loss_lr = 0
       print('save model: {}'.format(save_name))
+      print('time epoch %d: %.2f s' % (step / batch_per_epoch, time_total))
+      time_total = 0
 
 
 import argparse
