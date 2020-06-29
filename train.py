@@ -457,13 +457,14 @@ def main(opts):
           train_list=opts.ocr_feed_list, in_train=True, norm_height=norm_height, rgb=True)
   
   train_loss = 0
+  train_loss_temp = 0
   bbox_loss, seg_loss, angle_loss = 0., 0., 0.
   cnt = 0
   
   
   
   
-  ctc_loss = nn.CTCLoss()
+  ctc_loss = nn.CTCLoss().to(device)
   # ctc_loss = CTCLoss()
 
   
@@ -478,10 +479,10 @@ def main(opts):
 #   ctc_loss_lr = 0
   cntt = 0
   time_total = 0
+  now = time.time()
   
   for step in range(step_start, opts.max_iters):
     
-    now = time.time()
     # batch
     images, image_fns, score_maps, geo_maps, training_masks, gtso, lbso, gt_idxs = next(data_generator)
     im_data = net_utils.np_to_variable(images, is_cuda=opts.cuda).permute(0, 3, 1, 2)
@@ -512,10 +513,7 @@ def main(opts):
 
       #@ loss_val
     if not (torch.isnan(loss) or torch.isinf(loss)):
-      bbox_loss += net.box_loss_value.data.cpu().numpy()
-      seg_loss += net.segm_loss_value.data.cpu().numpy()
-      angle_loss += net.angle_loss_value.data.cpu().numpy()
-      train_loss += loss.data.cpu().numpy()
+      train_loss_temp += loss.data.cpu().numpy()
 
     optimizer.zero_grad()
        
@@ -523,8 +521,7 @@ def main(opts):
       
       if step > 10000 or True: #this is just extra augumentation step ... in early stage just slows down training
         ctcl, gt_b_good, gt_b_all = process_boxes(images, im_data, seg_pred[0], roi_pred[0], angle_pred[0], score_maps, gt_idxs, gtso, lbso, features, net, ctc_loss, opts, debug=opts.debug)
-        #@ loss_val
-        ctc_loss_val += ctcl.data.cpu().numpy()[0]
+        
         #? loss
         loss = loss + ctcl
         gt_all += gt_b_all
@@ -554,13 +551,17 @@ def main(opts):
         print('lossocr_nan', torch.isnan(loss_ocr))
         print('lossocr_inf', torch.isinf(loss_ocr))
         
-      if not (torch.isnan(loss) or torch.isinf(loss) or torch.isnan(loss_ocr) or torch.isinf(loss_ocr)):
-        optimizer.step()
-        # if not np.isinf(loss.data.cpu().numpy()):
+      if not (torch.isnan(loss) or torch.isinf(loss) or torch.isnan(loss_ocr) or torch.isinf(loss_ocr)):        
+        bbox_loss += net.box_loss_value.data.cpu().numpy()
+        seg_loss += net.segm_loss_value.data.cpu().numpy()
+        angle_loss += net.angle_loss_value.data.cpu().numpy()
+        train_loss += train_loss_temp
         ctc_loss_val2 += loss_ocr.item()
+        ctc_loss_val += ctcl.data.cpu().numpy()[0]
         # train_loss += loss.data.cpu().numpy()[0] #net.bbox_loss.data.cpu().numpy()[0]
+        optimizer.step()
+        train_loss_temp = 0
         cnt += 1
-        cntt += 1
 
     except:
       import sys, traceback
@@ -601,7 +602,7 @@ def main(opts):
         cv2.imshow('train_mask', training_masks[0] * 255)
         cv2.waitKey(10)
       
-      train_loss_lr += (ctc_loss_val + ctc_loss_val2 + train_loss*2)
+      
       train_loss /= cnt
       bbox_loss /= cnt
       seg_loss /= cnt
@@ -609,16 +610,19 @@ def main(opts):
       ctc_loss_val /= cnt
       ctc_loss_val2 /= cnt
       box_loss_val /= cnt
+      train_loss_lr += (ctc_loss_val + ctc_loss_val2 + train_loss)
+      cntt += 1
       time_now = time.time() - now
       time_total += time_now
+      now = time.time()
       f = open('/content/drive/My Drive/DATA_OCR/backup/loss.txt','a')
-      f.write('epoch %d[%d], loss: %.3f, bbox_loss: %.3f, seg_loss: %.3f, ang_loss: %.3f, ctc_loss: %.3f, rec: %.5f, lv2: %.3f, time: %.2f s\n' % (
-          step / batch_per_epoch, step, train_loss, bbox_loss, seg_loss, angle_loss, ctc_loss_val, good_all / max(1, gt_all), ctc_loss_val2, time_now))
+      f.write('epoch %d[%d], loss: %.3f, bbox_loss: %.3f, seg_loss: %.3f, ang_loss: %.3f, ctc_loss: %.3f, rec: %.5f, lv2: %.3f, time: %.2f s, cnt: %d\n' % (
+          step / batch_per_epoch, step, train_loss, bbox_loss, seg_loss, angle_loss, ctc_loss_val, good_all / max(1, gt_all), ctc_loss_val2, time_now, cnt))
       f.close()
       try:
         
-        print('epoch %d[%d], loss: %.3f, bbox_loss: %.3f, seg_loss: %.3f, ang_loss: %.3f, ctc_loss: %.3f, rec: %.5f, lv2: %.3f, time: %.2f s' % (
-          step / batch_per_epoch, step, train_loss, bbox_loss, seg_loss, angle_loss, ctc_loss_val, good_all / max(1, gt_all), ctc_loss_val2, time_now))
+        print('epoch %d[%d], loss: %.3f, bbox_loss: %.3f, seg_loss: %.3f, ang_loss: %.3f, ctc_loss: %.3f, rec: %.5f, lv2: %.3f, time: %.2f s,, cnt: %d' % (
+          step / batch_per_epoch, step, train_loss, bbox_loss, seg_loss, angle_loss, ctc_loss_val, good_all / max(1, gt_all), ctc_loss_val2, time_now, cnt))
       except:
         import sys, traceback
         traceback.print_exc(file=sys.stdout)
@@ -644,14 +648,13 @@ def main(opts):
               'optimizer': optimizer.state_dict()}
       torch.save(state, save_name)
       scheduler.step(train_loss_lr/cntt)
-      print(train_loss_lr/cntt)
       # scheduler.step(ctc_loss_lr/cntt)
+      print('save model: {}'.format(save_name))
+      print('time epoch [%d]: %.2f s, loss_total: %.3f' % (step / batch_per_epoch, time_total,train_loss_lr/cntt))
+      time_total = 0
       cntt = 0
       train_loss_lr = 0
       # ctc_loss_lr = 0
-      print('save model: {}'.format(save_name))
-      print('time epoch %d: %.2f s' % (step / batch_per_epoch, time_total))
-      time_total = 0
 
 
 import argparse
