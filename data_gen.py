@@ -498,26 +498,26 @@ def generate_rbox(im, im_size, polys, tags, labels, vis=False):
 
     isLine = False
 
-    if txt.find(" ") != -1:
+#     if txt.find(" ") != -1:
 
-      pts_line = np.copy(pts2)
+#       pts_line = np.copy(pts2)
 
-      c1 = ( pts[1] + pts[2] ) / 2
-      dw1 = (pts[2] - c1) / 1.2
-      pts_line[2] = c1 + dw1
-      dw2 = (pts[1] - c1) / 1.2
-      pts_line[1] = c1 + dw2
-
-
-      c1 = ( pts[0] + pts[3] ) / 2
-      dw1 = (pts[3] - c1) / 1.2
-      pts_line[3] = c1 + dw1
-      dw2 = (pts[0] - c1) / 1.2
-      pts_line[0] = c1 + dw2
+#       c1 = ( pts[1] + pts[2] ) / 2
+#       dw1 = (pts[2] - c1) / 1.2
+#       pts_line[2] = c1 + dw1
+#       dw2 = (pts[1] - c1) / 1.2
+#       pts_line[1] = c1 + dw2
 
 
-      cv2.fillPoly(training_mask, np.asarray([pts_line.round()], np.int32), 0)
-      isLine = True
+#       c1 = ( pts[0] + pts[3] ) / 2
+#       dw1 = (pts[3] - c1) / 1.2
+#       pts_line[3] = c1 + dw1
+#       dw2 = (pts[0] - c1) / 1.2
+#       pts_line[0] = c1 + dw2
+
+
+#       cv2.fillPoly(training_mask, np.asarray([pts_line.round()], np.int32), 0)
+#       isLine = True
 
     cv2.fillPoly(poly_mask, np.asarray([pts.round()], np.int32), poly_idx + 1)
     # TODO filter small
