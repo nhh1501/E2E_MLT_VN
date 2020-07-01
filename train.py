@@ -439,10 +439,10 @@ def main(opts):
   if os.path.exists(opts.model):
     print('loading model from %s' % args.model)
     # net_dict = net.state_dict()
-    # step_start, learning_rate = net_utils.load_net(args.model, net, optimizer)
-    step_start, learning_rate = net_utils.load_net(args.model, net, None)
-
-  step_start = 0
+    step_start, learning_rate = net_utils.load_net(args.model, net, optimizer)
+#     step_start, learning_rate = net_utils.load_net(args.model, net, None)
+# 
+#   step_start = 0
   if opts.cuda:
     net.to(device)
     
@@ -452,7 +452,7 @@ def main(opts):
            input_size=opts.input_size, batch_size=opts.batch_size, 
            train_list=opts.train_path, geo_type=opts.geo_type)
   
-  dg_ocr = ocr_gen.get_batch(num_workers=2,
+  dg_ocr = ocr_gen.get_batch(num_workers=4,
           batch_size=opts.ocr_batch_size, 
           train_list=opts.ocr_feed_list, in_train=True, norm_height=norm_height, rgb=True)
   
@@ -610,7 +610,9 @@ def main(opts):
       ctc_loss_val /= cnt
       ctc_loss_val2 /= cnt
       box_loss_val /= cnt
-      train_loss_lr += (ctc_loss_val + ctc_loss_val2 + train_loss)
+#       train_loss_lr += (ctc_loss_val + ctc_loss_val2 + train_loss)
+      train_loss_lr += (train_loss)
+
       cntt += 1
       time_now = time.time() - now
       time_total += time_now
