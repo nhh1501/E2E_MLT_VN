@@ -624,7 +624,10 @@ def main(opts):
             time_now = time.time() - now
             time_total += time_now
             now = time.time()
-            f = open('/content/drive/My Drive/DATA_OCR/backup/loss.txt', 'a')
+            
+            save_log = os.path.join(opts.save_path,'loss.txt')
+
+            f = open(save_log, 'a')
             f.write(
                 'epoch %d[%d], loss: %.3f, bbox_loss: %.3f, seg_loss: %.3f, ang_loss: %.3f, ctc_loss: %.3f, rec: %.5f, lv2: %.3f, time: %.2f s, cnt: %d\n' % (
                     step / batch_per_epoch, step, train_loss, bbox_loss, seg_loss, angle_loss, ctc_loss_val,
