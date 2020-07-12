@@ -453,6 +453,7 @@ def main(opts):
     #     step_start, learning_rate = net_utils.load_net(args.model, net, None)
     #
     #   step_start = 0
+    net_utils.adjust_learning_rate(optimizer,0.001)
     if opts.cuda:
         net.to(device)
 
@@ -656,6 +657,9 @@ def main(opts):
         # if step % valid_interval == 0:
         #  validate(opts.valid_list, net)
         if step > step_start and (step % batch_per_epoch == 0):
+            for param_group in optimizer.param_groups:
+                learning_rate = param_group['lr']
+                print('learning_rate', learning_rate)
             save_name = os.path.join(opts.save_path, '{}_{}.h5'.format(model_name, step))
             state = {'step': step,
                      'learning_rate': learning_rate,
