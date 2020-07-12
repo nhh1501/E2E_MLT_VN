@@ -276,9 +276,9 @@ def process_boxes(images, im_data, iou_pred, roi_pred, angle_pred, score_maps, g
 
             # fs2 = net.forward_features(x2)
             fs2 = x2
-            offset = (fs2.size(2) - features.size(2)) // 2
-            offset2 = (fs2.size(3) - features.size(3)) // 2
-            fs2 = fs2[:, :, offset:(features.size(2) + offset), offset2:-offset2]
+            offset = int(fs2.size(2) - (norm_height)) // 2
+            offset2 = int(fs2.size(3) - x.size(3) ) // 2
+            fs2 = fs2[:, :, offset:(norm_height + offset), offset2:-offset2]
             labels_pred2 = net.forward_ocr(fs2)
 
             label_length = []
@@ -476,6 +476,7 @@ def main(opts):
 
     ctc_loss_val = 0
     ctc_loss_val2 = 0
+    ctcl = torch.tensor([0])
     box_loss_val = 0
     good_all = 0
     gt_all = 0
