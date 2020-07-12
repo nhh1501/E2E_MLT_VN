@@ -10,7 +10,7 @@ import torch.nn.functional as F
 import numpy as np
 
 from torch.nn import LeakyReLU, Conv2d, Dropout2d, LogSoftmax, InstanceNorm2d
-device = 'cpu'
+device = 'cuda'
 import math
 
 
