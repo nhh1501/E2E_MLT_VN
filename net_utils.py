@@ -48,4 +48,11 @@ def load_net(fname, net, optimizer=None):
   
   print(fname)
   return step, learning_rate 
+
+def adjust_learning_rate(optimizer, lr):
+  """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
+  # lr = args.lr * (0.1 ** (epoch // 30))
+  for param_group in optimizer.param_groups:
+    param_group['lr'] = lr
+  
   
