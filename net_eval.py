@@ -3,7 +3,7 @@ Edit form train_ocr
 '''
 import os, sys
 sys.path.append('./build')
-device = 'cpu'
+device = 'cuda'
 import numpy as np
 import torch.nn.functional as F
 import collections
