@@ -77,7 +77,6 @@ def ocr_image(net, codec, im_data, detection,target_h):
   
   input_W = im_data.size(3)
   input_H = im_data.size(2)
-  target_h = 44
     
   scale = target_h / max(1, h) 
   target_gw = int(w * scale) + target_h 
@@ -134,8 +133,8 @@ def ocr_image(net, codec, im_data, detection,target_h):
   
   return det_text, conf2, dec_s
 
-def ocr_batch(net, codec, im_data,ctc_loss, gtso,lbso):
-
+def ocr_batch(net, codec, im_data, gtso,lbso,target_h):
+#e2e
   num_gt = len(gtso)
   rrois = []
   labels = []
@@ -149,30 +148,25 @@ def ocr_batch(net, codec, im_data,ctc_loss, gtso,lbso):
       center = (gt[:, 0, :] + gt[:, 1, :] + gt[:, 2, :] + gt[:, 3, :]) / 4  # 求中心点
       dw = gt[:, 2, :] - gt[:, 1, :]
       dh = gt[:, 1, :] - gt[:, 0, :]
-
       poww = pow(dw, 2)
       powh = pow(dh, 2)
 
       w = np.sqrt(poww[:, 0] + poww[:, 1])
       h = np.sqrt(powh[:, 0] + powh[:, 1]) + random.randint(-2, 2)
 
-      dw2= gt[:, 0, :] - gt[:, 3, :]
-      dh2= gt[:, 3, :] - gt[:, 2, :]
+      # dw2= gt[:, 0, :] - gt[:, 3, :]
+      # dh2= gt[:, 3, :] - gt[:, 2, :]
+      # poww2 = pow(dw2, 2)
+      # powh2 = pow(dh2, 2)
+      # w2= np.sqrt(poww2[:, 0]  + poww2[:, 1])
+      # h2= np.sqrt(powh2[:, 0] + powh2[:, 1]) + random.randint(-2, 2)
+      #
+      # w = (w + w2) / 2
+      # h = (h + h2) / 2
 
-      poww2 = pow(dw2, 2)
-      powh2 = pow(dh2, 2)
-
-      w2= np.sqrt(poww2[:, 0]  + poww2[:, 1])
-      h2= np.sqrt(powh2[:, 0] + powh2[:, 1]) + random.randint(-2, 2)
-
-      w = (w + w2) / 2
-      h = (h + h2) / 2
-
-      anglesd = np.arctan2((gt[:, 2, 1] - gt[:, 1, 1]), gt[:, 2, 0] - gt[:, 1, 0])
-      # angle = (math.atan2((gt[:,2,1] - gt[:,1,1]), gt[:,2,0] - gt[:,1,0]) + math.atan2((gt[:, 3, 1] - gt[:, 0, 1]), gt[:, 3, 0] - gt[:, 0, 0])) / 2
       angle  = (np.arctan2((gt[:, 2, 1] - gt[:, 1, 1]), gt[:, 2, 0] - gt[:, 1, 0]))
-      angle2 = (np.arctan2((gt[:, 3, 1] - gt[:, 0, 1]), gt[:, 3, 0] - gt[:, 0, 0]))
-      angle = angle + angle2
+      # angle2 = (np.arctan2((gt[:, 3, 1] - gt[:, 0, 1]), gt[:, 3, 0] - gt[:, 0, 0]))
+      # angle = angle + angle2
       for gt_id in range(0, len(gts)):
 
         gt_txt = lbs[gt_id]  # 文字判断
@@ -198,7 +192,6 @@ def ocr_batch(net, codec, im_data,ctc_loss, gtso,lbso):
   angle = rois[:,5]
   input_W = im_data.size(3)
   input_H = im_data.size(2)
-  target_h = 44
 
   scale = target_h / torch.max(torch.ones_like(h), h) # h = rois[:,3]
   target_gw = (w * scale) + target_h
@@ -254,7 +247,7 @@ def ocr_batch(net, codec, im_data,ctc_loss, gtso,lbso):
     # labels_gt.append()
   return (det_texts, labels)
 
-def crnn_batch(net, codec, im_data,ctc_loss, gtso,lbso,target_h):
+def crnn_batch(net, codec, im_data, gtso,lbso,target_h):
 
   num_gt = len(gtso)
   rrois = []
@@ -276,23 +269,21 @@ def crnn_batch(net, codec, im_data,ctc_loss, gtso,lbso,target_h):
       w = np.sqrt(poww[:, 0] + poww[:, 1])
       h = np.sqrt(powh[:, 0] + powh[:, 1]) + random.randint(-2, 2)
 
-      dw2= gt[:, 0, :] - gt[:, 3, :]
-      dh2= gt[:, 3, :] - gt[:, 2, :]
+      # dw2= gt[:, 0, :] - gt[:, 3, :]
+      # dh2= gt[:, 3, :] - gt[:, 2, :]
+      #
+      # poww2 = pow(dw2, 2)
+      # powh2 = pow(dh2, 2)
+      #
+      # w2= np.sqrt(poww2[:, 0]  + poww2[:, 1])
+      # h2= np.sqrt(powh2[:, 0] + powh2[:, 1]) + random.randint(-2, 2)
+      #
+      # w = (w + w2) / 2
+      # h = (h + h2) / 2
 
-      poww2 = pow(dw2, 2)
-      powh2 = pow(dh2, 2)
-
-      w2= np.sqrt(poww2[:, 0]  + poww2[:, 1])
-      h2= np.sqrt(powh2[:, 0] + powh2[:, 1]) + random.randint(-2, 2)
-
-      w = (w + w2) / 2
-      h = (h + h2) / 2
-
-      anglesd = np.arctan2((gt[:, 2, 1] - gt[:, 1, 1]), gt[:, 2, 0] - gt[:, 1, 0])
-      # angle = (math.atan2((gt[:,2,1] - gt[:,1,1]), gt[:,2,0] - gt[:,1,0]) + math.atan2((gt[:, 3, 1] - gt[:, 0, 1]), gt[:, 3, 0] - gt[:, 0, 0])) / 2
       angle  = (np.arctan2((gt[:, 2, 1] - gt[:, 1, 1]), gt[:, 2, 0] - gt[:, 1, 0]))
-      angle2 = (np.arctan2((gt[:, 3, 1] - gt[:, 0, 1]), gt[:, 3, 0] - gt[:, 0, 0]))
-      angle = angle + angle2
+      # angle2 = (np.arctan2((gt[:, 3, 1] - gt[:, 0, 1]), gt[:, 3, 0] - gt[:, 0, 0]))
+      # angle = angle + angle2
       for gt_id in range(0, len(gts)):
 
         gt_txt = lbs[gt_id]  # 文字判断
@@ -363,7 +354,7 @@ def crnn_batch(net, codec, im_data,ctc_loss, gtso,lbso,target_h):
 
     labelss = ctc_f.argmax(2)
 
-    ind = np.unravel_index(labelss, ctc_f.shape)
+    # ind = np.unravel_index(labelss, ctc_f.shape)
     # conf = np.mean(np.exp(ctc_f[ind]))
 
     det_text, conf2, dec_s, splits = print_seq_ext(labelss[0, :], codec)
