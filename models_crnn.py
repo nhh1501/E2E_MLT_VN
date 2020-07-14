@@ -364,7 +364,7 @@ def iou_loss(roi_gt, byte_mask, roi_pred):
   return box_loss_value
   
 
-class ModelResNetSep_final(nn.Module):
+class ModelResNetSep_crnn(nn.Module):
 
   def recompute(self):
     self.layer0[0].recompute_weights()
@@ -373,7 +373,7 @@ class ModelResNetSep_final(nn.Module):
     self.layer0_1[2].recompute_weights()
 
   def __init__(self, attention = False, multi_scale = True,num_classes = 400 ,fixed_height=48, net = 'densenet',):
-    super(ModelResNetSep_final, self).__init__()
+    super(ModelResNetSep_crnn, self).__init__()
 
     self.inplanes = 64
 
