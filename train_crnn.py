@@ -441,8 +441,6 @@ def main(opts):
     print("Using {0}".format(model_name))
 
     learning_rate = opts.base_lr
-    if opts.cuda:
-        net.to(device)
     optimizer = torch.optim.Adam(net.parameters(), lr=opts.base_lr, weight_decay=weight_decay)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=3, verbose=True)
     step_start = 0
