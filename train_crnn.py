@@ -2,12 +2,10 @@
 Created on Sep 3, 2017
 @author: Michal.Busta at gmail.com
 '''
-#testing karren
 
 import torch, os
 import numpy as np
 import cv2
-
 device = 'cuda'
 import net_utils
 import data_gen
@@ -16,13 +14,16 @@ import timeit
 import math
 import random
 import time
-from models_crnn import   ModelResNetSep_final
+from models_crnn import   ModelResNetSep_crnn
 import torch.autograd as autograd
 import torch.nn.functional as F
 # from torch_baidu_ctc import ctc_loss, CTCLoss
 import torch.nn as nn
 # from warpctc_pytorch import CTCLoss
 from ocr_test_utils import print_seq_ext
+from net_eval import evaluate_crnn
+from utils import E2Ecollate,E2Edataset
+
 
 import unicodedata as ud
 import ocr_gen
@@ -284,17 +285,17 @@ def process_boxes(images, im_data, iou_pred, roi_pred, angle_pred, score_maps, g
 
             label_length = []
             label_length.append(len(gt_labels))
-            probs_sizes = autograd.Variable(torch.IntTensor(
-                [(labels_pred.permute(2, 0, 1).size()[0])] * (labels_pred.permute(2, 0, 1).size()[1]))).long()
+            probs_sizes = autograd.Variable(
+            torch.IntTensor([( labels_pred.size()[0])] * ( labels_pred.size()[1]))).long()
             label_sizes = autograd.Variable(torch.IntTensor(torch.from_numpy(np.array(label_length)).int())).long()
             labels = autograd.Variable(torch.IntTensor(torch.from_numpy(np.array(gt_labels)).int())).long()
 
-            loss = loss + ctc_loss(labels_pred.permute(2, 0, 1), labels, probs_sizes, label_sizes).to(device)
-            loss = loss + ctc_loss(labels_pred2.permute(2, 0, 1), labels, probs_sizes, label_sizes).to(device)
+            loss = loss + ctc_loss( labels_pred, labels, probs_sizes, label_sizes).to(device)
+            loss = loss + ctc_loss( labels_pred2, labels, probs_sizes, label_sizes).to(device)
             ctc_loss_count += 1
 
             if debug:
-                ctc_f = labels_pred.data.cpu().numpy()
+                ctc_f = labels_pred.permute(1, 2, 0).data.cpu().numpy()
                 ctc_f = ctc_f.swapaxes(1, 2)
 
                 labels = ctc_f.argmax(2)
@@ -393,12 +394,11 @@ def process_boxes(images, im_data, iou_pred, roi_pred, angle_pred, score_maps, g
 
             label_length = []
             label_length.append(len(gt_labels))
-            probs_sizes = torch.IntTensor(
-                [(labels_pred.permute(2, 0, 1).size()[0])] * (labels_pred.permute(2, 0, 1).size()[1])).long()
+            probs_sizes =  torch.IntTensor( [( labels_pred.size()[0])] * ( labels_pred.size()[1]) ).long()
             label_sizes = torch.IntTensor(torch.from_numpy(np.array(label_length)).int()).long()
             labels = torch.IntTensor(torch.from_numpy(np.array(gt_labels)).int()).long()
 
-            loss = loss + ctc_loss(labels_pred.permute(2, 0, 1), labels, probs_sizes, label_sizes).to(device)
+            loss = loss + ctc_loss( labels_pred, labels, probs_sizes, label_sizes).to(device)
             ctc_loss_count += 1
 
             if debug:
@@ -415,7 +415,7 @@ def process_boxes(images, im_data, iou_pred, roi_pred, angle_pred, score_maps, g
 
             gt_proc += 1
             if True:
-                ctc_f = labels_pred.data.cpu().numpy()
+                ctc_f = labels_pred .permute(1, 2, 0).data.cpu().numpy()
                 ctc_f = ctc_f.swapaxes(1, 2)
 
                 labels = ctc_f.argmax(2)
@@ -437,7 +437,7 @@ def process_boxes(images, im_data, iou_pred, roi_pred, angle_pred, score_maps, g
 def main(opts):
     model_name = 'E2E-MLT'
     # net = ModelResNetSep2(attention=True)
-    net = ModelResNetSep_final(attention=True,multi_scale = True,num_classes = 400 ,fixed_height=norm_height, net = 'densenet',)
+    net = ModelResNetSep_crnn(attention=True,multi_scale = True,num_classes = 400 ,fixed_height=norm_height, net = 'densenet',)
   # net = ModelResNetSep_final(attention=True)
     print("Using {0}".format(model_name))
 
@@ -455,6 +455,7 @@ def main(opts):
     net_utils.adjust_learning_rate(optimizer,0.001)
     if opts.cuda:
         net.to(device)
+        ctc_loss = nn.CTCLoss().to(device)
 
     net.train()
 
@@ -466,12 +467,17 @@ def main(opts):
                                batch_size=opts.ocr_batch_size,
                                train_list=opts.ocr_feed_list, in_train=True, norm_height=norm_height, rgb=True)
 
+    e2edata = E2Edataset(train_list=opts.eval_path)
+    e2edataloader = torch.utils.data.DataLoader(e2edata, batch_size=opts.batch_size, shuffle=True, collate_fn=E2Ecollate
+                                              )
+
+
     train_loss = 0
     train_loss_temp = 0
     bbox_loss, seg_loss, angle_loss = 0., 0., 0.
     cnt = 0
 
-    ctc_loss = nn.CTCLoss().to(device)
+
     # ctc_loss = CTCLoss()
 
     ctc_loss_val = 0
@@ -539,12 +545,10 @@ def main(opts):
             # features = net.forward_features(im_data_ocr)
             labels_pred = net.forward_ocr(im_data_ocr)
 
-            probs_sizes = torch.IntTensor(
-                [(labels_pred.permute(2, 0, 1).size()[0])] * (labels_pred.permute(2, 0, 1).size()[1])).long()
+            probs_sizes =  torch.IntTensor( [( labels_pred.size()[0])] * ( labels_pred.size()[1]) ).long()
             label_sizes = torch.IntTensor(torch.from_numpy(np.array(label_length)).int()).long()
             labels = torch.IntTensor(torch.from_numpy(np.array(labels)).int()).long()
-            loss_ocr = ctc_loss(labels_pred.permute(2, 0, 1), labels, probs_sizes, label_sizes) / im_data_ocr.size(
-                0) * 0.5
+            loss_ocr = ctc_loss( labels_pred, labels, probs_sizes, label_sizes) / im_data_ocr.size(0) * 0.5
 
             loss_ocr.backward()
             # @ loss_val
@@ -656,6 +660,7 @@ def main(opts):
         # if step % valid_interval == 0:
         #  validate(opts.valid_list, net)
         if step > step_start and (step % batch_per_epoch == 0):
+            CER,WER = evaluate_crnn(e2edataloader,net)
             for param_group in optimizer.param_groups:
                 learning_rate = param_group['lr']
                 print('learning_rate', learning_rate)
@@ -665,11 +670,10 @@ def main(opts):
                      'state_dict': net.state_dict(),
                      'optimizer': optimizer.state_dict()}
             torch.save(state, save_name)
-            scheduler.step(train_loss_lr / cntt)
+            scheduler.step(CER)
             # scheduler.step(ctc_loss_lr/cntt)
             print('save model: {}'.format(save_name))
-            print('time epoch [%d]: %.2f s, loss_total: %.3f' % (
-            step / batch_per_epoch, time_total, train_loss_lr / cntt))
+            print('time epoch [%d]: %.2f s, loss_total: %.3f, CER = %f, WER = %f' % (step / batch_per_epoch, time_total,train_loss_lr/cntt,CER,WER))
             time_total = 0
             cntt = 0
             train_loss_lr = 0
@@ -681,6 +685,7 @@ import argparse
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-train_path', default='/content/data_mlt')
+    parser.add_argument('-eval_path', default='/content/data_mlt')
     parser.add_argument('-ocr_feed_list', default='/content/data_MLT_crop/gt_vi.txt')
     parser.add_argument('-save_path', default='/content/drive/My Drive/DATA_OCR/backup')
     parser.add_argument('-model', default='e2e-mlt.h5')

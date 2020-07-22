@@ -25,10 +25,18 @@ lr_decay = 0.99
 momentum = 0.9
 weight_decay = 0.0005
 batch_per_epoch = 10000
-disp_interval = 2
+disp_interval = 500
 
      
 def main(opts):
+
+  train_loss = 0
+  train_loss_lr = 0
+  cnt = 1
+  cntt = 0
+  time_total = 0
+  now = time.time()
+  converter = strLabelConverter(codec)
 
   model_name = 'E2E-MLT'
   net = ModelResNetSep_crnn(attention=True, multi_scale=True, num_classes=400, fixed_height=opts.norm_height,
@@ -56,9 +64,9 @@ def main(opts):
 
   net.train()
 
-  data_generator = ocr_gen.get_batch(num_workers=opts.num_readers,
-                                     batch_size=opts.batch_size,
-                                     train_list=opts.train_list, in_train=True, norm_height=opts.norm_height, rgb = True)
+  # data_generator = ocr_gen.get_batch(num_workers=opts.num_readers,
+  #                                    batch_size=opts.batch_size,
+  #                                    train_list=opts.train_list, in_train=True, norm_height=opts.norm_height, rgb = True)
 
   data_dataset = ocrDataset(root=opts.train_list, norm_height=opts.norm_height , in_train=True)
   data_generator1 = torch.utils.data.DataLoader(data_dataset, batch_size=opts.batch_size, shuffle=True,
@@ -74,14 +82,13 @@ def main(opts):
      # images, labels, label_length = next(data_generator)
      # im_data = net_utils.np_to_variable(images, is_cuda=opts.cuda).permute(0, 3, 1, 2)
 
-     try:
-       images, label  = next(dataloader_iterator)
-     except:
+    try:
+       images, label = next(dataloader_iterator)
+    except:
        dataloader_iterator = iter(data_generator1)
        images, label = next(dataloader_iterator)
-     labels, label_length = converter.encode(label)
-     im_data = images.to(device)
-
+    labels, label_length = converter.encode(label)
+    im_data = images.to(device)
     # print(im_data.shape[0])
     # features = net.forward_features(im_data)
     labels_pred = net.forward_ocr(im_data)
