@@ -642,7 +642,7 @@ def train_transforms():
 
             ],
             p=0.3),
-        # transforms.ToTensor()
+        transforms.ToTensor()
 
     ])
 
@@ -655,10 +655,6 @@ def test_transforms():
     transforms.ToTensor()
   ])
   return transform
-
-
-trans_train = train_transforms()
-test_train = test_transforms()
 
 
 def cut_image(img, new_size, word_gto):
@@ -707,8 +703,8 @@ class ocrDataset(Dataset):
         self.norm_height = norm_height
         self.path = self.get_path(root)
         self.root = root
-        self.train_transform = trans_train
-        self.test_transform = test_train
+        self.train_transform = train_transforms()
+        self.test_transform = test_transforms()
         self.in_train = in_train
         self.target_transform = target_transform
 
