@@ -60,24 +60,37 @@ def main(opts):
                                      batch_size=opts.batch_size,
                                      train_list=opts.train_list, in_train=True, norm_height=opts.norm_height, rgb = True)
 
-  train_loss = 0
-  train_loss_lr = 0
-  cnt = 1
-  cntt = 0
-  time_total = 0
-  now = time.time()
+  data_dataset = ocrDataset(root=opts.train_list, norm_height=opts.norm_height , in_train=True)
+  data_generator1 = torch.utils.data.DataLoader(data_dataset, batch_size=opts.batch_size, shuffle=True,
+                                             collate_fn=alignCollate())
+  val_dataset = ocrDataset(root=opts.valid_list, norm_height=opts.norm_height , in_train=False)
+  val_generator1 = torch.utils.data.DataLoader(val_dataset, batch_size=opts.batch_size, shuffle=False,
+                                             collate_fn=alignCollate())
+
+
+
 
   for step in range(step_start, 300000):
-    images, labels, label_length = next(data_generator)
-    im_data = net_utils.np_to_variable(images, is_cuda=opts.cuda).permute(0, 3, 1, 2)
+     # images, labels, label_length = next(data_generator)
+     # im_data = net_utils.np_to_variable(images, is_cuda=opts.cuda).permute(0, 3, 1, 2)
+
+     try:
+       images, label  = next(dataloader_iterator)
+     except:
+       dataloader_iterator = iter(data_generator1)
+       images, label = next(dataloader_iterator)
+     labels, label_length = converter.encode(label)
+     im_data = images.to(device)
+
+    # print(im_data.shape[0])
     # features = net.forward_features(im_data)
     labels_pred = net.forward_ocr(im_data)
 
     # backward
-    probs_sizes =  torch.IntTensor( [(labels_pred.permute(2,0,1).size()[0])] * (labels_pred.permute(2,0,1).size()[1]) )
+    probs_sizes =  torch.IntTensor( [(labels_pred.size()[0])] * (labels_pred.size()[1]) )
     label_sizes = torch.IntTensor( torch.from_numpy(np.array(label_length)).int() )
     labels = torch.IntTensor( torch.from_numpy(np.array(labels)).int() )
-    loss = ctc_loss(labels_pred.permute(2,0,1), labels, probs_sizes, label_sizes) / im_data.size(0) # change 1.9.
+    loss = ctc_loss(labels_pred, labels, probs_sizes, label_sizes) / im_data.size(0) # change 1.9.
     optimizer.zero_grad()
     loss.backward()
 
@@ -90,7 +103,7 @@ def main(opts):
       cnt += 1
 
     if opts.debug:
-      dbg = labels_pred.data.cpu().numpy()
+      dbg = labels_pred.permute(1, 2, 0).data.cpu().numpy()
       ctc_f = dbg.swapaxes(1, 2)
       labels = ctc_f.argmax(2)
       det_text, conf, dec_s,_ = print_seq_ext(labels[0, :], codec)
@@ -122,6 +135,8 @@ def main(opts):
       cnt = 1
 
     if step > step_start and (step % batch_per_epoch == 0):
+      #evaluate
+      CER, WER = eval_ocr_crnn(val_generator1,net)
 
       for param_group in optimizer.param_groups:
         learning_rate = param_group['lr']
@@ -133,9 +148,10 @@ def main(opts):
                'state_dict': net.state_dict(),
                'optimizer': optimizer.state_dict()}
       torch.save(state, save_name)
-      scheduler.step(train_loss_lr / cntt)
+      # scheduler.step(train_loss_lr / cntt)
+      scheduler.step(CER)
       print('save model: {}'.format(save_name))
-      print('time epoch [%d]: %.2f s, loss_total: %.3f' % (step / batch_per_epoch, time_total, train_loss_lr / cntt))
+      print('time epoch [%d]: %.2f s, loss_total: %.3f, CER = %f, WER = %f' % (step / batch_per_epoch, time_total, train_loss_lr / cntt, CER, WER))
       time_total = 0
       cntt = 0
       train_loss_lr = 0
@@ -148,9 +164,9 @@ if __name__ == '__main__':
   parser.add_argument('-save_path', default='content/drive/My_Drive/DATA_OCR/backup')
   parser.add_argument('-model', default='E2E-MLT_69000.h5')
   parser.add_argument('-debug', type=int, default=0)
-  parser.add_argument('-batch_size', type=int, default=3)
+  parser.add_argument('-batch_size', type=int, default=8)
   parser.add_argument('-num_readers', type=int, default=1)
-  parser.add_argument('-cuda', type=bool, default=False)
+  parser.add_argument('-cuda', type=bool, default=True)
   parser.add_argument('-norm_height', type=int, default=48)
   
   args = parser.parse_args()  
