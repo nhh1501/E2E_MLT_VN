@@ -2,6 +2,7 @@
 # encoding: utf-8
 
 import torch
+import albumentations as A
 import torch.nn as nn
 from torch.autograd import Variable
 from torch.utils.data import Dataset
@@ -574,6 +575,92 @@ from data_gen import draw_box_points
 #
 #     return torch.stack(img, 0), gt_boxes, texts
 
+
+
+
+class ImgAugTransform:
+    def __init__(self):
+        self.aug = A.Compose([
+        A.CoarseDropout(max_holes=7, min_holes=1, min_height=1, min_width=1, max_height=16, max_width=4, fill_value=128,
+                        p=0.5),
+        A.OneOf([
+            A.Blur(blur_limit=10,p=1),
+            A.MedianBlur(blur_limit=5,p=1),
+
+        ],)
+
+        # A.RandomContrast(limit=0.05, p=0.75),
+        # A.RandomBrightness(limit=0.05, p=0.75),
+        # A.RandomBrightnessContrast(contrast_limit=0.05, brightness_limit=0.05, p=0.75),
+    ])
+
+
+    def __call__(self, img):
+        # img = np.array(img)
+        img = np.asarray(img, dtype=np.float32)
+        img /= 128
+        img -= 1
+
+        transformed_img =  self.aug(image=img)['image']
+
+        # return Image.fromarray(transformed_img)
+        return transformed_img
+
+
+def random_dilate(img):
+    img = np.array(img)
+    img = cv2.dilate(img, np.ones(shape=(random.randint(1, 3), random.randint(1, 3)), dtype=np.uint8))
+    return Image.fromarray(img)
+    # return img
+
+
+def random_erode(img):
+    img = np.array(img)
+    img = cv2.erode(img, np.ones(shape=(random.randint(1, 3), random.randint(1, 3)), dtype=np.uint8))
+    return Image.fromarray(img)
+    # return img
+
+def train_transforms():
+    transform = transforms.Compose([
+
+        transforms.RandomApply(
+            [
+                random_dilate,
+            ],
+            p=0.15),
+
+        transforms.RandomApply(
+            [
+                random_erode,
+            ],
+            p=0.15),
+
+        transforms.RandomAffine(degrees=3, scale=(0.95, 1.05), shear=3, resample=Image.NEAREST, fillcolor=255),
+        transforms.RandomApply(
+            [
+                ImgAugTransform(),
+
+            ],
+            p=0.3),
+        # transforms.ToTensor()
+
+    ])
+
+
+
+    return transform
+
+def test_transforms():
+  transform = transforms.Compose([
+    transforms.ToTensor()
+  ])
+  return transform
+
+
+trans_train = train_transforms()
+test_train = test_transforms()
+
+
 def cut_image(img, new_size, word_gto):
 
   if len(word_gto) > 0:
@@ -616,11 +703,13 @@ def cut_image(img, new_size, word_gto):
   return crop_img
 
 class ocrDataset(Dataset):
-    def __init__(self, root, norm_height = 48, transform=None, target_transform=None):
+    def __init__(self, root, norm_height = 48,in_train = True, target_transform=None):
         self.norm_height = norm_height
         self.path = self.get_path(root)
         self.root = root
-        self.transform = transform
+        self.train_transform = trans_train
+        self.test_transform = test_train
+        self.in_train = in_train
         self.target_transform = target_transform
 
     def get_path(self,data_path):
@@ -665,14 +754,16 @@ class ocrDataset(Dataset):
             image_name = image_name[0:-1]
 
         im = cv2.imread(image_name)
+        im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
         im = im[2:im.shape[0]-2,:,:]
         scale = self.norm_height / float(im.shape[0])
         width = int(im.shape[1] * scale)
 
         im = cv2.resize(im, (int(width), self.norm_height))
-        image = np.asarray(im, dtype=np.float32)
-        image /= 128
-        image -= 1
+        image = PIL.Image.fromarray(np.uint8(im))
+        # image = np.asarray(im, dtype=np.float32)
+        # image /= 128
+        # image -= 1
 #get labels
         # gt_labels = []
         # for k in range(len(gt_txt)):
@@ -693,8 +784,11 @@ class ocrDataset(Dataset):
         except IOError:
             print('Corrupted image for %d' % index)
             return self[index + 1]
-        if self.transform is not None:
-            image = self.transform(image)
+        if self.in_train :
+            image = self.train_transform(image)
+        else:
+            image = self.test_transform(image)
+            # image = np.array(image)
         if self.target_transform is not None:
             label = self.target_transform(label)
         return (image, label)
