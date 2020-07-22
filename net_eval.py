@@ -219,7 +219,6 @@ def eval_ocr(ocrdataloader,net):
   len_wer = 0
   with torch.no_grad():
     for index, date in enumerate(ocrdataloader):
-      print(index)
       im_data, lbso = date
       im_data = im_data.to(device)
       features = net.forward_features(im_data)
@@ -236,7 +235,7 @@ def eval_ocr(ocrdataloader,net):
 
       if not isinstance(pred, list):
         pred = [pred]
-      assert (pred.__len__() == target.__len__())
+      assert (len(pred) == len(target))
 
       target_cer = ''.join(target).replace(" ", "").lower()
       pred_cer = ''.join(pred).replace(" ", "").lower()
@@ -261,11 +260,10 @@ def eval_ocr_crnn(ocrdataloader,net):
   len_wer = 0
   with torch.no_grad():
     for index, date in enumerate(ocrdataloader):
-      print(index)
       im_data, lbso = date
       im_data = im_data.to(device)
       labels_pred = net.forward_ocr(im_data)
-
+      labels_pred = labels_pred.permute(1, 2, 0)
       ctc_f = labels_pred.data.cpu().numpy()
       ctc_f = ctc_f.swapaxes(1, 2)
       labelss = ctc_f.argmax(2)
@@ -277,7 +275,7 @@ def eval_ocr_crnn(ocrdataloader,net):
 
       if not isinstance(pred, list):
         pred = [pred]
-      assert (pred.__len__() == target.__len__())
+      assert (len(pred)== len(target))
 
       target_cer = ''.join(target).replace(" ", "").lower()
       pred_cer = ''.join(pred).replace(" ", "").lower()

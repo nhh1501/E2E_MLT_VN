@@ -348,6 +348,7 @@ def crnn_batch(net, codec, im_data, gtso,lbso,target_h):
 
     # features = net.forward_features(x)
     labels_pred = net.forward_ocr(x)
+    labels_pred = labels_pred.permute(1, 2, 0)
 
     ctc_f = labels_pred.data.cpu().numpy()
     ctc_f = ctc_f.swapaxes(1, 2)

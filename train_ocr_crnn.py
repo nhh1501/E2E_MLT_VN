@@ -160,6 +160,7 @@ def main(opts):
       scheduler.step(CER)
       print('time epoch [%d]: %.2f s, loss_total: %.3f, CER = %f, WER = %f' % (step / batch_per_epoch, time_total, train_loss_lr / cntt, CER, WER))
       print('save model: {}'.format(save_name))
+      net.train()
       time_total = 0
       cntt = 0
       train_loss_lr = 0
