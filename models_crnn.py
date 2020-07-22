@@ -475,7 +475,7 @@ class ModelResNetSep_crnn(nn.Module):
 
     output = self.crnn(x)
     output = self.log_softmax(output)
-    output = output.permute(1, 2, 0)
+    # output = output.permute(1, 2, 0)
 
     return output
 
