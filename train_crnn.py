@@ -487,7 +487,6 @@ def main(opts):
     good_all = 0
     gt_all = 0
     train_loss_lr = 0
-    #   ctc_loss_lr = 0
     cntt = 0
     time_total = 0
     now = time.time()
@@ -621,7 +620,6 @@ def main(opts):
             ctc_loss_val /= cnt
             ctc_loss_val2 /= cnt
             box_loss_val /= cnt
-            #       train_loss_lr += (ctc_loss_val + ctc_loss_val2 + train_loss)
             train_loss_lr += (train_loss)
 
             cntt += 1
@@ -660,7 +658,6 @@ def main(opts):
         # if step % valid_interval == 0:
         #  validate(opts.valid_list, net)
         if step > step_start and (step % batch_per_epoch == 0):
-            CER,WER = evaluate_crnn(e2edataloader,net)
             for param_group in optimizer.param_groups:
                 learning_rate = param_group['lr']
                 print('learning_rate', learning_rate)
@@ -670,14 +667,15 @@ def main(opts):
                      'state_dict': net.state_dict(),
                      'optimizer': optimizer.state_dict()}
             torch.save(state, save_name)
-            scheduler.step(CER)
-            # scheduler.step(ctc_loss_lr/cntt)
+            #evaluate
+            # CER,WER = evaluate_crnn(e2edataloader,net)
+            # scheduler.step(CER)
+            # print('time epoch [%d]: %.2f s, loss_total: %.3f, CER = %f, WER = %f' % (step / batch_per_epoch, time_total,train_loss_lr/cntt,CER,WER))
+            print('time epoch [%d]: %.2f s, loss_total: %.3f' % (step / batch_per_epoch, time_total,train_loss_lr/cntt))
             print('save model: {}'.format(save_name))
-            print('time epoch [%d]: %.2f s, loss_total: %.3f, CER = %f, WER = %f' % (step / batch_per_epoch, time_total,train_loss_lr/cntt,CER,WER))
             time_total = 0
             cntt = 0
             train_loss_lr = 0
-            # ctc_loss_lr = 0
 
 
 import argparse

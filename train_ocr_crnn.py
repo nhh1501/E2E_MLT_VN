@@ -142,8 +142,7 @@ def main(opts):
       cnt = 1
 
     if step > step_start and (step % batch_per_epoch == 0):
-      #evaluate
-      CER, WER = eval_ocr_crnn(val_generator1,net)
+
 
       for param_group in optimizer.param_groups:
         learning_rate = param_group['lr']
@@ -156,9 +155,12 @@ def main(opts):
                'optimizer': optimizer.state_dict()}
       torch.save(state, save_name)
       # scheduler.step(train_loss_lr / cntt)
+      # evaluate
+      CER, WER = eval_ocr_crnn(val_generator1, net)
       scheduler.step(CER)
-      print('save model: {}'.format(save_name))
       print('time epoch [%d]: %.2f s, loss_total: %.3f, CER = %f, WER = %f' % (step / batch_per_epoch, time_total, train_loss_lr / cntt, CER, WER))
+      print('time epoch [%d]: %.2f s, loss_total: %.3f' % (step / batch_per_epoch, time_total, train_loss_lr / cntt))
+      print('save model: {}'.format(save_name))
       time_total = 0
       cntt = 0
       train_loss_lr = 0
@@ -166,9 +168,9 @@ def main(opts):
 if __name__ == '__main__': 
   parser = argparse.ArgumentParser()
   
-  parser.add_argument('-train_list', default='content/drive/My_Drive/DATA_OCR/data_MLT_crop/gt_vi.txt')
-  parser.add_argument('-valid_list', default='sample_train_data/MLT_CROPS/gt.txt')
-  parser.add_argument('-save_path', default='content/drive/My_Drive/DATA_OCR/backup')
+  parser.add_argument('-train_list', default='/content/data_MLT_crop/gt_vi.txt')
+  parser.add_argument('-valid_list', default='/content/data_MLT_crop/gt_vi_eval.txt')
+  parser.add_argument('-save_path', default='/content/drive/My Drive/DATA_OCR/backupgru')
   parser.add_argument('-model', default='E2E-MLT_69000.h5')
   parser.add_argument('-debug', type=int, default=0)
   parser.add_argument('-batch_size', type=int, default=8)
