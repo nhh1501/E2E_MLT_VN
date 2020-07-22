@@ -225,7 +225,7 @@ def eval_ocr(ocrdataloader,net):
       features = net.forward_features(im_data)
       labels_pred = net.forward_ocr(features)
 
-      ctc_f = labels_pred.data.to(device).numpy()
+      ctc_f = labels_pred.data.cpu().numpy()
       ctc_f = ctc_f.swapaxes(1, 2)
       labelss = ctc_f.argmax(2)
       leng=[labelss.shape[1] for i in range(labelss.shape[0])]
@@ -266,7 +266,7 @@ def eval_ocr_crnn(ocrdataloader,net):
       im_data = im_data.to(device)
       labels_pred = net.forward_ocr(im_data)
 
-      ctc_f = labels_pred.data.to(device).numpy()
+      ctc_f = labels_pred.data.cpu().numpy()
       ctc_f = ctc_f.swapaxes(1, 2)
       labelss = ctc_f.argmax(2)
       leng=[labelss.shape[1] for i in range(labelss.shape[0])]
