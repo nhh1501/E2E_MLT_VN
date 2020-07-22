@@ -14,6 +14,9 @@ import ocr_gen
 import torch.nn as nn
 from models_crnn import ModelResNetSep_crnn
 from ocr_test_utils import print_seq_ext
+from utils import E2Ecollate,E2Edataset,alignCollate,ocrDataset
+from torchvision import transforms
+from net_eval import strLabelConverter,eval_ocr_crnn
 
 device = 'cuda'
 f = open('codec.txt', 'r')
@@ -48,7 +51,6 @@ def main(opts):
   if opts.cuda:
     net.to(device)
     ctc_loss.to(device)
-    optimizer.to(device)
   if os.path.exists(opts.model):
     print('loading model from %s' % args.model)
     step_start, learning_rate = net_utils.load_net(args.model, net, optimizer)
@@ -89,8 +91,6 @@ def main(opts):
        images, label = next(dataloader_iterator)
     labels, label_length = converter.encode(label)
     im_data = images.to(device)
-    # print(im_data.shape[0])
-    # features = net.forward_features(im_data)
     labels_pred = net.forward_ocr(im_data)
 
     # backward
@@ -159,7 +159,6 @@ def main(opts):
       CER, WER = eval_ocr_crnn(val_generator1, net)
       scheduler.step(CER)
       print('time epoch [%d]: %.2f s, loss_total: %.3f, CER = %f, WER = %f' % (step / batch_per_epoch, time_total, train_loss_lr / cntt, CER, WER))
-      print('time epoch [%d]: %.2f s, loss_total: %.3f' % (step / batch_per_epoch, time_total, train_loss_lr / cntt))
       print('save model: {}'.format(save_name))
       time_total = 0
       cntt = 0
