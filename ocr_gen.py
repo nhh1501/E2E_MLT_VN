@@ -21,7 +21,7 @@ if use_pyblur == 1:
 
 buckets = []
 for i in range(1, 100):
-  buckets.append(8 + 4 * i)
+  buckets.append(16 + 8 * i)
 
 
 import unicodedata as ud
@@ -78,7 +78,7 @@ def get_images_zip(data_path):
 
 
 
-def generator(batch_size=4, train_list='/home/klara/klara/home/DeepSemanticText/resources/ims2.txt', in_train=True, rgb = False, norm_height = 32):
+def generator(batch_size=4, train_list='/home/klara/klara/home/DeepSemanticText/resources/ims2.txt', in_train=True, rgb = False, norm_height = 32, normalize = True):
   image_list = np.array(get_images(train_list))
 #   image_list = np.array(get_images_zip(train_list))
   print('{} training images in {}'.format(image_list.shape[0], train_list))
@@ -102,7 +102,7 @@ def generator(batch_size=4, train_list='/home/klara/klara/home/DeepSemanticText/
   bucket_images = []
   bucket_labels = []
   bucket_label_len = []
-  
+  list_label = []
   for b in range(0, len(buckets)):
     bucket_images.append([])
     bucket_labels.append([])
@@ -134,6 +134,8 @@ def generator(batch_size=4, train_list='/home/klara/klara/home/DeepSemanticText/
           if len(gt_txt) > 1 and gt_txt[0] == '"' and gt_txt[-1] == '"':
               gt_txt = gt_txt[1:-1]
         
+          list_label.append(gt_txt)
+
         if len(gt_txt)  == 0:
           continue
               
@@ -167,7 +169,7 @@ def generator(batch_size=4, train_list='/home/klara/klara/home/DeepSemanticText/
         
         scale = norm_height / float(im.shape[0])
         width = int(im.shape[1] * scale) + random.randint(- 2 * norm_height, 2 * norm_height)
-      
+      #? lựa ra
         best_diff = width
         bestb = 0
         for b in range(0, len(buckets)):
@@ -181,6 +183,7 @@ def generator(batch_size=4, train_list='/home/klara/klara/home/DeepSemanticText/
           bestb = min(bestb, (len(buckets) - 1))
               
         width =  buckets[bestb]       
+        # với bức hình đó tìm ra cái scale tốt nhất cho thằng CNN
         im = cv2.resize(im, (int(buckets[bestb]), norm_height))
         if not rgb:
           im = im.reshape(im.shape[0],im.shape[1], 1) 
@@ -227,9 +230,12 @@ def generator(batch_size=4, train_list='/home/klara/klara/home/DeepSemanticText/
         bucket_label_len[bestb].append(len(gt_labels))
         
         if len(bucket_images[bestb]) == batch_sizes[bestb]:
-          images = np.asarray(bucket_images[bestb], dtype=np.float)
-          images /= 128
-          images -= 1
+          images = np.asarray(bucket_images[bestb])
+          ##
+          if normalize:
+            images = images.astype(np.float)
+            images /= 128#
+            images -= 1
 
           yield images, bucket_labels[bestb], bucket_label_len[bestb]
           max_samples += 1
@@ -268,8 +274,8 @@ def get_batch(num_workers, **kwargs):
       enqueuer.stop()
 
 if __name__ == '__main__':
-  
-  data_generator = get_batch(num_workers=1, batch_size=1)
+  list= 'content/drive/My_Drive/DATA_OCR/data_MLT_crop/gt_vi.txt'
+  data_generator = get_batch(num_workers=1, batch_size=1, train_list=list, in_train=True, norm_height=48, rgb=True, normalize = True)
   while True:
     data = next(data_generator)
   

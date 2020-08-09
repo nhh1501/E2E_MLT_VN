@@ -156,7 +156,7 @@ def load_gt_annoataion(p, is_icdar):
 
     return np.array(text_polys, dtype=np.float), np.array(text_tags, dtype=np.bool), labels
 
-def draw_box_points(img, points, color = (0, 255, 0), thickness = 1):
+def _draw_box_points(img, points, color = (0, 255, 0), thickness = 1):
   try:
     cv2.line(img, (int(points[0][0]), int(points[0][1])), (int(points[1][0]), int(points[1][1])), (255, 0, 0), thickness)
     cv2.circle(img, (int(points[1][0]), int(points[1][1])), 10, (0, 255, 0), -1)
@@ -168,6 +168,17 @@ def draw_box_points(img, points, color = (0, 255, 0), thickness = 1):
     traceback.print_exc(file=sys.stdout)
     pass
 
+def draw_box_points(img, points, color = (0, 255, 0), thickness = 1):
+  try:
+    cv2.line(img, (int(points[0][0]), int(points[0][1])), (int(points[1][0]), int(points[1][1])), color, thickness)
+    cv2.circle(img, (int(points[1][0]), int(points[1][1])), 5, (0, 255, 0), -1)
+    cv2.line(img, (int(points[2][0]), int(points[2][1])), (int(points[1][0]), int(points[1][1])), color, thickness)
+    cv2.line(img, (int(points[2][0]), int(points[2][1])), (int(points[3][0]), int(points[3][1])), color, thickness)
+    cv2.line(img, (int(points[0][0]), int(points[0][1])), (int(points[3][0]), int(points[3][1])), color, thickness)
+  except:
+    import sys, traceback
+    traceback.print_exc(file=sys.stdout)
+    pass
 
 
 
@@ -579,7 +590,7 @@ def generate_rbox(im, im_size, polys, tags, labels, vis=False):
 
 
 
-def generator(input_size=512, batch_size=4, train_list='/home/klara/klara/home/DeepSemanticText/resources/ims2.txt', vis=False, in_train=True, geo_type = 0):
+def generator(input_size=512, batch_size=4,train_list='/home/klara/klara/home/DeepSemanticText/resources/ims2.txt', vis=False, in_train=True, geo_type = 0, normalize = True):
   image_list = np.array(get_images(train_list))
 #   image_list = np.array(list_image)
   print('{} training images in {}'.format(image_list.shape[0],train_list))
@@ -762,9 +773,12 @@ def generator(input_size=512, batch_size=4, train_list='/home/klara/klara/home/D
 
 
         if len(images) == batch_size:
-          images = np.asarray(images, dtype=np.float)
-          images /= 128
-          images -= 1
+          images = np.asarray(images)
+          ##
+          if normalize:
+            images = images.astype(np.float)
+            images /= 128#
+            images -= 1
 
           training_masks = np.asarray(training_masks, dtype=np.uint8)
           score_maps = np.asarray(score_maps, dtype=np.uint8)

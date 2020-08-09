@@ -24,7 +24,7 @@ import ocr_gen
 import torch.nn as nn
 from torch.autograd import Variable
 
-from models import ModelResNetSep2
+from models import  ModelResNetSep_final
 from ocr_test_utils import print_seq_ext
 import random
 
@@ -41,8 +41,8 @@ disp_interval = 10
      
 def main(opts):
   
-  model_name = 'E2E'
-  net = ModelResNetSep2(attention=True)
+  model_name = 'E2E-MLT'
+  net = ModelResNetSep_final(attention=True)
   acc = []
   
   if opts.cuda:
@@ -147,7 +147,7 @@ if __name__ == '__main__':
   parser.add_argument('-batch_size', type=int, default=1)
   parser.add_argument('-num_readers', type=int, default=1)
   parser.add_argument('-cuda', type=bool, default=False)
-  parser.add_argument('-norm_height', type=int, default=40)
+  parser.add_argument('-norm_height', type=int, default=44)
   
   args = parser.parse_args()  
   main(args)

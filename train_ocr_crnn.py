@@ -17,6 +17,7 @@ from ocr_test_utils import print_seq_ext
 from utils import E2Ecollate,E2Edataset,alignCollate,ocrDataset
 from torchvision import transforms
 from net_eval import strLabelConverter,eval_ocr_crnn
+import matplotlib.pyplot as plt
 
 device = 'cuda'
 f = open('codec.txt', 'r')
@@ -158,6 +159,9 @@ def main(opts):
       # evaluate
       CER, WER = eval_ocr_crnn(val_generator1, net)
       scheduler.step(CER)
+      f = open(save_log, 'a')
+      f.write('time epoch [%d]: %.2f s, loss_total: %.3f, CER = %f, WER = %f' % (step / batch_per_epoch, time_total, train_loss_lr / cntt, CER, WER))
+      f.close()
       print('time epoch [%d]: %.2f s, loss_total: %.3f, CER = %f, WER = %f' % (step / batch_per_epoch, time_total, train_loss_lr / cntt, CER, WER))
       print('save model: {}'.format(save_name))
       net.train()

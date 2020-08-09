@@ -21,7 +21,7 @@ import torch.nn.functional as F
 import torch.nn as nn
 # from warpctc_pytorch import CTCLoss
 from ocr_test_utils import print_seq_ext
-from net_eval import evaluate_crnn
+from net_eval import evaluate_crnn, evaluate_e2e_crnn
 from utils import E2Ecollate,E2Edataset
 
 
@@ -100,8 +100,9 @@ def process_boxes(images, im_data, iou_pred, roi_pred, angle_pred, score_maps, g
 
         if debug:
             img = images[bid]
-            img += 1
-            img *= 128
+            if opts.normalize:
+                img += 1
+                img *= 128
             img = np.asarray(img, dtype=np.uint8)
 
         xy_text = np.argwhere(to_walk > 0)
@@ -244,9 +245,9 @@ def process_boxes(images, im_data, iou_pred, roi_pred, angle_pred, score_maps, g
                 x_c = x.data.cpu().numpy()[0]
                 x_data_draw = x_c.swapaxes(0, 2)
                 x_data_draw = x_data_draw.swapaxes(0, 1)
-
-                x_data_draw += 1
-                x_data_draw *= 128
+                if opts.normalize:
+                    x_data_draw += 1
+                    x_data_draw *= 128
                 x_data_draw = np.asarray(x_data_draw, dtype=np.uint8)
                 x_data_draw = x_data_draw[:, :, ::-1]
 
@@ -405,9 +406,9 @@ def process_boxes(images, im_data, iou_pred, roi_pred, angle_pred, score_maps, g
                 x_d = x.data.cpu().numpy()[0]
                 x_data_draw = x_d.swapaxes(0, 2)
                 x_data_draw = x_data_draw.swapaxes(0, 1)
-
-                x_data_draw += 1
-                x_data_draw *= 128
+                if opts.normalize:
+                    x_data_draw += 1
+                    x_data_draw *= 128
                 x_data_draw = np.asarray(x_data_draw, dtype=np.uint8)
                 x_data_draw = x_data_draw[:, :, ::-1]
                 cv2.imshow('im_data_gt', x_data_draw)
@@ -443,7 +444,7 @@ def main(opts):
 
     learning_rate = opts.base_lr
     optimizer = torch.optim.Adam(net.parameters(), lr=opts.base_lr, weight_decay=weight_decay)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=3, verbose=True)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,mode='max', factor=0.5, patience=5, verbose=True)
     step_start = 0
     if os.path.exists(opts.model):
         print('loading model from %s' % args.model)
@@ -453,6 +454,7 @@ def main(opts):
     #
     #   step_start = 0
     net_utils.adjust_learning_rate(optimizer,0.001)
+    ctc_loss = nn.CTCLoss()
     if opts.cuda:
         net.to(device)
         ctc_loss = nn.CTCLoss().to(device)
@@ -461,13 +463,13 @@ def main(opts):
 
     data_generator = data_gen.get_batch(num_workers=opts.num_readers,
                                         input_size=opts.input_size, batch_size=opts.batch_size,
-                                        train_list=opts.train_path, geo_type=opts.geo_type)
+                                        train_list=opts.train_path, geo_type=opts.geo_type, normalize= opts.normalize)
 
-    dg_ocr = ocr_gen.get_batch(num_workers=4,
+    dg_ocr = ocr_gen.get_batch(num_workers=2,
                                batch_size=opts.ocr_batch_size,
-                               train_list=opts.ocr_feed_list, in_train=True, norm_height=norm_height, rgb=True)
+                               train_list=opts.ocr_feed_list, in_train=True, norm_height=norm_height, rgb=True, normalize= opts.normalize)
 
-    e2edata = E2Edataset(train_list=opts.eval_path)
+    e2edata = E2Edataset(train_list=opts.eval_path, normalize= opts.normalize)
     e2edataloader = torch.utils.data.DataLoader(e2edata, batch_size=opts.batch_size, shuffle=True, collate_fn=E2Ecollate
                                               )
 
@@ -487,6 +489,7 @@ def main(opts):
     good_all = 0
     gt_all = 0
     train_loss_lr = 0
+    ctc_loss_lr = 0
     cntt = 0
     time_total = 0
     now = time.time()
@@ -595,8 +598,9 @@ def main(opts):
                 x_data = x_data.swapaxes(0, 2)
                 x_data = x_data.swapaxes(0, 1)
 
-                x_data += 1
-                x_data *= 128
+                if opts.normalize:
+                    x_data += 1
+                    x_data *= 128
                 x_data = np.asarray(x_data, dtype=np.uint8)
                 x_data = x_data[:, :, ::-1]
 
@@ -668,14 +672,20 @@ def main(opts):
                      'optimizer': optimizer.state_dict()}
             torch.save(state, save_name)
             #evaluate
+            re_tpe2e, re_tp, re_e1 ,precision = evaluate_e2e_crnn(root=args.eval_path,net= net,norm_height = 48, name_model=save_name, normalize=args.normalize, save_dir=args.save_path)
             # CER,WER = evaluate_crnn(e2edataloader,net)
-            # scheduler.step(CER)
-            # print('time epoch [%d]: %.2f s, loss_total: %.3f, CER = %f, WER = %f' % (step / batch_per_epoch, time_total,train_loss_lr/cntt,CER,WER))
-            print('time epoch [%d]: %.2f s, loss_total: %.3f' % (step / batch_per_epoch, time_total,train_loss_lr/cntt))
+
+            scheduler.step(re_tpe2e)
+            f = open(save_log, 'a')
+            f.write('time epoch [%d]: %.2f s, loss_total: %.3f, re_tpe2e = %f, re_tp = %f, re_e1 = %f, precision = %f\n' % (step / batch_per_epoch, time_total,train_loss_lr/cntt,re_tpe2e, re_tp, re_e1 ,precision))
+            f.close()
+            print('time epoch [%d]: %.2f s, loss_total: %.3f, re_tpe2e = %f, re_tp = %f, re_e1 = %f, precision = %f' % (step / batch_per_epoch, time_total,train_loss_lr/cntt,re_tpe2e, re_tp, re_e1 ,precision))
+            #print('time epoch [%d]: %.2f s, loss_total: %.3f' % (step / batch_per_epoch, time_total,train_loss_lr/cntt))
             print('save model: {}'.format(save_name))
             time_total = 0
             cntt = 0
             train_loss_lr = 0
+            net.train()
 
 
 import argparse
@@ -697,5 +707,6 @@ if __name__ == '__main__':
     parser.add_argument('-base_lr', type=float, default=0.0001)
     parser.add_argument('-max_iters', type=int, default=5)
     parser.add_argument('-d1', type=int, default=1)
+    parser.add_argument('-normalize', type=bool, default=False)
     args = parser.parse_args()
     main(args)

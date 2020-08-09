@@ -22,7 +22,7 @@ import torch.nn.functional as F
 import torch.nn as nn
 # from warpctc_pytorch import CTCLoss
 from ocr_test_utils import print_seq_ext
-
+from net_eval import evaluate_e2e
 
 import unicodedata as ud
 import ocr_gen
@@ -95,8 +95,9 @@ def process_boxes(images, im_data, iou_pred, roi_pred, angle_pred, score_maps, g
     
     if debug:
       img = images[bid]
-      img += 1
-      img *= 128
+      if opts.normalize:
+        img += 1
+        img *= 128#
       img = np.asarray(img, dtype=np.uint8)
     
     xy_text = np.argwhere(to_walk > 0)
@@ -236,9 +237,9 @@ def process_boxes(images, im_data, iou_pred, roi_pred, angle_pred, score_maps, g
         x_c = x.data.cpu().numpy()[0]
         x_data_draw = x_c.swapaxes(0, 2)
         x_data_draw = x_data_draw.swapaxes(0, 1)
-      
-        x_data_draw += 1
-        x_data_draw *= 128
+        if opts.normalize:
+           x_data_draw += 1
+           x_data_draw *= 128#
         x_data_draw = np.asarray(x_data_draw, dtype=np.uint8)
         x_data_draw = x_data_draw[:, :, ::-1]
       
@@ -394,9 +395,9 @@ def process_boxes(images, im_data, iou_pred, roi_pred, angle_pred, score_maps, g
         x_d = x.data.cpu().numpy()[0]
         x_data_draw = x_d.swapaxes(0, 2)
         x_data_draw = x_data_draw.swapaxes(0, 1)
-      
-        x_data_draw += 1
-        x_data_draw *= 128
+        if opts.normalize:
+            x_data_draw += 1
+            x_data_draw *= 128#
         x_data_draw = np.asarray(x_data_draw, dtype=np.uint8)
         x_data_draw = x_data_draw[:, :, ::-1]
         cv2.imshow('im_data_gt', x_data_draw)
@@ -434,7 +435,7 @@ def main(opts):
   if opts.cuda:
     net.to(device)
   optimizer = torch.optim.Adam(net.parameters(), lr=opts.base_lr, weight_decay=weight_decay)
-  scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,factor=0.5 ,patience=3,verbose=True)
+  scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,mode='max',factor=0.5 ,patience=3,verbose=True)
   step_start = 0  
   if os.path.exists(opts.model):
     print('loading model from %s' % args.model)
@@ -450,11 +451,11 @@ def main(opts):
 
   data_generator = data_gen.get_batch(num_workers=opts.num_readers, 
            input_size=opts.input_size, batch_size=opts.batch_size, 
-           train_list=opts.train_path, geo_type=opts.geo_type)
+           train_list=opts.train_path, geo_type=opts.geo_type, normalize= opts.normalize)
   
-  dg_ocr = ocr_gen.get_batch(num_workers=4,
+  dg_ocr = ocr_gen.get_batch(num_workers=2,
           batch_size=opts.ocr_batch_size, 
-          train_list=opts.ocr_feed_list, in_train=True, norm_height=norm_height, rgb=True)
+          train_list=opts.ocr_feed_list, in_train=True, norm_height=norm_height, rgb=True, normalize= opts.normalize)
   
   train_loss = 0
   train_loss_temp = 0
@@ -476,7 +477,7 @@ def main(opts):
   good_all = 0
   gt_all = 0
   train_loss_lr = 0
-#   ctc_loss_lr = 0
+  ctc_loss_lr = 0
   cntt = 0
   time_total = 0
   now = time.time()
@@ -584,8 +585,9 @@ def main(opts):
         x_data = x_data.swapaxes(0, 2)
         x_data = x_data.swapaxes(0, 1)
         
-        x_data += 1
-        x_data *= 128
+        if opts.normalize:
+            x_data += 1
+            x_data *= 128
         x_data = np.asarray(x_data, dtype=np.uint8)
         x_data = x_data[:, :, ::-1]
         
@@ -617,7 +619,9 @@ def main(opts):
       time_now = time.time() - now
       time_total += time_now
       now = time.time()
-      f = open('/content/drive/My Drive/DATA_OCR/backup/loss.txt','a')
+      save_log = os.path.join(opts.save_path,'loss.txt')
+      # f = open('content/drive/My_Drive/DATA_OCR/backup/ca ca/loss.txt','a')
+      f = open(save_log,'a')
       f.write('epoch %d[%d], loss: %.3f, bbox_loss: %.3f, seg_loss: %.3f, ang_loss: %.3f, ctc_loss: %.3f, rec: %.5f, lv2: %.3f, time: %.2f s, cnt: %d\n' % (
           step / batch_per_epoch, step, train_loss, bbox_loss, seg_loss, angle_loss, ctc_loss_val, good_all / max(1, gt_all), ctc_loss_val2, time_now, cnt))
       f.close()
@@ -643,16 +647,32 @@ def main(opts):
     #if step % valid_interval == 0:
     #  validate(opts.valid_list, net)
     if step > step_start and (step % batch_per_epoch == 0):
+      # CER,WER = evaluate_crnn(e2edataloader,net)
+      for param_group in optimizer.param_groups:
+        learning_rate = param_group['lr']
+        print('learning_rate', learning_rate)
       save_name = os.path.join(opts.save_path, '{}_{}.h5'.format(model_name, step))
       state = {'step': step,
                'learning_rate': learning_rate,
               'state_dict': net.state_dict(),
               'optimizer': optimizer.state_dict()}
       torch.save(state, save_name)
-      scheduler.step(train_loss_lr/cntt)
-      # scheduler.step(ctc_loss_lr/cntt)
+
+      # evaluate
+      re_tpe2e, re_tp, re_e1, precision = evaluate_e2e(root=args.eval_path, net=net, norm_height=44,
+                                                       name_model=save_name, normalize=args.normalize,
+                                                       save_dir=args.save_path,save = False)
+      # CER,WER = evaluate_crnn(e2edataloader,net)
+
+      scheduler.step(re_tpe2e)
+      f = open('content/drive/My_Drive/DATA_OCR/backup/ca ca/loss.txt','a')
+      f.write('time epoch [%d]: %.2f s, loss_total: %.3f, re_tpe2e = %f, re_tp = %f, re_e1 = %f, precision = %f\n' % (
+      step / batch_per_epoch, time_total, train_loss_lr / cntt, re_tpe2e, re_tp, re_e1, precision))
+      f.close()
+      print('time epoch [%d]: %.2f s, loss_total: %.3f, re_tpe2e = %f, re_tp = %f, re_e1 = %f, precision = %f' % (
+      step / batch_per_epoch, time_total, train_loss_lr / cntt, re_tpe2e, re_tp, re_e1, precision))
+      # print('time epoch [%d]: %.2f s, loss_total: %.3f' % (step / batch_per_epoch, time_total,train_loss_lr/cntt))
       print('save model: {}'.format(save_name))
-      print('time epoch [%d]: %.2f s, loss_total: %.3f' % (step / batch_per_epoch, time_total,train_loss_lr/cntt))
       time_total = 0
       cntt = 0
       train_loss_lr = 0
@@ -662,7 +682,6 @@ def main(opts):
 import argparse
 
 if __name__ == '__main__': 
-  
   parser = argparse.ArgumentParser()
   parser.add_argument('-train_path', default='/content/data_mlt')
   parser.add_argument('-ocr_feed_list', default='/content/data_MLT_crop/gt_vi.txt')
@@ -678,6 +697,7 @@ if __name__ == '__main__':
   parser.add_argument('-base_lr', type=float, default=0.0001)
   parser.add_argument('-max_iters', type=int, default=5)
   parser.add_argument('-d1', type=int, default=1)
+  parser.add_argument('-normalize', type=bool, default=True)
   args = parser.parse_args()  
   main(args)
   

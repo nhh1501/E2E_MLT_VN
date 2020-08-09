@@ -19,19 +19,33 @@ from data_gen import generate_rbox, generate_rbox2
 from data_gen import load_gt_annoataion
 from data_gen import get_images
 import torchvision.transforms as transforms
+import tensorflow as tf
 from data_gen import draw_box_points
 
 
 class ImgAugTransform:
     def __init__(self):
         self.aug = A.Compose([
-        A.CoarseDropout(max_holes=7, min_holes=1, min_height=1, min_width=1, max_height=16, max_width=4, fill_value=128,
-                        p=0.5),
-        A.OneOf([
-            A.Blur(blur_limit=10,p=1),
-            A.MedianBlur(blur_limit=5,p=1),
 
-        ],)
+        A.OneOf([
+            A.Blur(blur_limit=10,p=0.5),
+            A.MedianBlur(blur_limit=5,p=0.5),
+        ]),
+        A.OneOf([
+            A.CoarseDropout(max_holes=7, min_holes=3, min_height=3, min_width=1, max_height=16, max_width=4,
+                            fill_value=255,
+                            p=0.5),
+            A.CoarseDropout(max_holes=7, min_holes=3, min_height=3, min_width=1, max_height=16, max_width=4,
+                            fill_value=170,
+                            p=0.5),
+            A.CoarseDropout(max_holes=7, min_holes=3, min_height=3, min_width=1, max_height=16, max_width=4,
+                            fill_value=85,
+                            p=0.5),
+            A.CoarseDropout(max_holes=7, min_holes=3, min_height=3, min_width=1, max_height=16, max_width=4,
+                            fill_value=0,
+                        p=0.5),
+
+        ]),
 
         # A.RandomContrast(limit=0.05, p=0.75),
         # A.RandomBrightness(limit=0.05, p=0.75),
@@ -40,15 +54,12 @@ class ImgAugTransform:
 
 
     def __call__(self, img):
-        # img = np.array(img)
-        img = np.asarray(img, dtype=np.float32)
-        img /= 128
-        img -= 1
-
+        img = np.array(img)
         transformed_img =  self.aug(image=img)['image']
 
-        # return Image.fromarray(transformed_img)
-        return transformed_img
+        return Image.fromarray(transformed_img)
+        # return transformed_img
+
 
 def to_array(img):
     img = np.asarray(img, dtype=np.float32)
@@ -85,18 +96,18 @@ def train_transforms():
             ],
             p=0.15),
 
-        transforms.RandomAffine(degrees=3, scale=(0.95, 1.05), shear=3, resample=Image.NEAREST, fillcolor=255),
-        transforms.RandomApply(
-            [
-                to_array,
-            ],
-            p=1),
+        transforms.RandomAffine(degrees=3, scale=(0.95, 1.05), shear=3, resample=Image.NEAREST, fillcolor=(255,255,255)),
+        # transforms.RandomApply(
+        #     [
+        #         to_array,
+        #     ],
+        #     p=1),
         transforms.RandomApply(
             [
                 ImgAugTransform(),
 
             ],
-            p=0.3),
+            p=0.6),
         transforms.ToTensor()
 
     ])
@@ -265,10 +276,11 @@ class alignCollate(object):
 
 
 class E2Edataset(Dataset):
-    def __init__(self, train_list, input_size=512):
+    def __init__(self, train_list, input_size=512, normalize = True):
         super(E2Edataset, self).__init__()
         self.image_list = np.array(get_images(train_list))
         self.input_size = input_size
+        self.normalize = normalize
 
         print('{} training images in {}'.format(self.image_list.shape[0], train_list))
 
@@ -335,9 +347,13 @@ class E2Edataset(Dataset):
         new_h, new_w, _ = im.shape
         score_map, geo_map, training_mask, gt_idx, gt_out, labels_out = generate_rbox(im, (new_h, new_w), text_polys, text_tags, labels_txt, vis=False)
 
-        im = np.asarray(im, dtype=np.float32)
-        im /= 128
-        im -= 1
+
+        im = np.asarray(im)
+        ##
+        if self.normalize:
+            im = im.astype(np.float32)
+            im /= 128
+            im -= 1
         im = torch.from_numpy(im).permute(2,0,1)
 
 
@@ -361,6 +377,27 @@ def E2Ecollate(batch):
 
     return torch.stack(img, 0), gt_boxes, texts,scores,training_masks
 
+
+class BeamSearchDecoder():
+    def __init__(self, lib, corpus, chars, word_chars, beam_width=20, lm_type='Words', lm_smoothing=0.01, tfsess=None):
+        word_beam_search_module = tf.load_op_library(lib)
+        self.mat = tf.placeholder(tf.float32)
+        corpus = open(corpus).read()
+        chars = open(chars).read()
+        word_chars = open(word_chars).read()
+
+        self.beamsearch_decoder = word_beam_search_module.word_beam_search(self.mat, beam_width, lm_type, lm_smoothing,
+                                                                           corpus, chars, word_chars)
+        self.tfsess = tfsess or tf.Session()
+        self.idx2char = dict(zip(range(0, len(chars)), chars))
+
+    def beamsearch(self, mat):
+        mat = np.concatenate((mat[:, :, 1:], mat[:, :, :1]), axis=-1)
+        results = self.tfsess.run(self.beamsearch_decoder, {self.mat: mat})
+        return results
+
+    def decode(self, preds_idx):
+        return [''.join([self.idx2char[idx] for idx in row if idx < len(self.idx2char)]) for row in preds_idx]
 
 
 if __name__ == '__main__':
