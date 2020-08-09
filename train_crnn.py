@@ -469,9 +469,9 @@ def main(opts):
                                batch_size=opts.ocr_batch_size,
                                train_list=opts.ocr_feed_list, in_train=True, norm_height=norm_height, rgb=True, normalize= opts.normalize)
 
-    e2edata = E2Edataset(train_list=opts.eval_path, normalize= opts.normalize)
-    e2edataloader = torch.utils.data.DataLoader(e2edata, batch_size=opts.batch_size, shuffle=True, collate_fn=E2Ecollate
-                                              )
+    # e2edata = E2Edataset(train_list=opts.eval_path, normalize= opts.normalize)
+    # e2edataloader = torch.utils.data.DataLoader(e2edata, batch_size=opts.batch_size, shuffle=True, collate_fn=E2Ecollate
+    #                                           )
 
 
     train_loss = 0
@@ -489,7 +489,6 @@ def main(opts):
     good_all = 0
     gt_all = 0
     train_loss_lr = 0
-    ctc_loss_lr = 0
     cntt = 0
     time_total = 0
     now = time.time()
@@ -672,7 +671,7 @@ def main(opts):
                      'optimizer': optimizer.state_dict()}
             torch.save(state, save_name)
             #evaluate
-            re_tpe2e, re_tp, re_e1 ,precision = evaluate_e2e_crnn(root=args.eval_path,net= net,norm_height = 48, name_model=save_name, normalize=args.normalize, save_dir=args.save_path)
+            re_tpe2e, re_tp, re_e1 ,precision = evaluate_e2e_crnn(root=args.eval_path,net= net,norm_height = norm_height, name_model=save_name, normalize=args.normalize, save_dir=args.save_path)
             # CER,WER = evaluate_crnn(e2edataloader,net)
 
             scheduler.step(re_tpe2e)
