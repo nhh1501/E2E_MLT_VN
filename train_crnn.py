@@ -477,7 +477,7 @@ def main(opts):
     train_loss = 0
     train_loss_temp = 0
     bbox_loss, seg_loss, angle_loss = 0., 0., 0.
-    cnt = 0
+    cnt = 1
 
 
     # ctc_loss = CTCLoss()
@@ -531,7 +531,7 @@ def main(opts):
 
         try:
 
-            if step > 10000 or False:  # this is just extra augumentation step ... in early stage just slows down training
+            if step > 1000 or True:  # this is just extra augumentation step ... in early stage just slows down training
                 ctcl, gt_b_good, gt_b_all = process_boxes(images, im_data, seg_pred[0], roi_pred[0], angle_pred[0],
                                                           score_maps, gt_idxs, gtso, lbso, features, net, ctc_loss,
                                                           opts, debug=opts.debug)
@@ -703,7 +703,7 @@ if __name__ == '__main__':
     parser.add_argument('-cuda', type=bool, default=True)
     parser.add_argument('-input_size', type=int, default=512)
     parser.add_argument('-geo_type', type=int, default=0)
-    parser.add_argument('-base_lr', type=float, default=0.0001)
+    parser.add_argument('-base_lr', type=float, default=0.001)
     parser.add_argument('-max_iters', type=int, default=5)
     parser.add_argument('-d1', type=int, default=1)
     parser.add_argument('-normalize', type=bool, default=False)
