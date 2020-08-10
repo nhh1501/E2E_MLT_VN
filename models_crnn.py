@@ -125,8 +125,8 @@ class Decoder(nn.Module):
     self.rnn2 = BidirectionalLSTM(hidden_dim, hidden_dim, num_class)
 
   def forward(self, X):
-    X = X.view(X.size(0), X.size(1) * X.size(2), X.size(3))
-    X = X.permute(2, 0, 1)
+    X = X.contiguous().view(X.size(0), X.size(1) * X.size(2), X.size(3))
+    X = X.permute(2, 0, 1).contiguous()
     X = self.rnn1(X)
     output = self.rnn2(X)
     return output
