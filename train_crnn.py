@@ -441,10 +441,13 @@ def main(opts):
     net = ModelResNetSep_crnn(attention=True,multi_scale = True,num_classes = 400 ,fixed_height=norm_height, net = 'densenet',)
   # net = ModelResNetSep_final(attention=True)
     print("Using {0}".format(model_name))
-
+    ctc_loss = nn.CTCLoss()
+    if opts.cuda:
+        net.to(device)
+        ctc_loss.to(device)
     learning_rate = opts.base_lr
     optimizer = torch.optim.Adam(net.parameters(), lr=opts.base_lr, weight_decay=weight_decay)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,mode='max', factor=0.5, patience=5, verbose=True)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,mode='max', factor=0.5, patience=4, verbose=True)
     step_start = 0
     if os.path.exists(opts.model):
         print('loading model from %s' % args.model)
@@ -453,11 +456,8 @@ def main(opts):
     #     step_start, learning_rate = net_utils.load_net(args.model, net, None)
     #
     #   step_start = 0
-    net_utils.adjust_learning_rate(optimizer,0.001)
-    ctc_loss = nn.CTCLoss()
-    if opts.cuda:
-        net.to(device)
-        ctc_loss = nn.CTCLoss().to(device)
+    net_utils.adjust_learning_rate(optimizer,learning_rate)
+
 
     net.train()
 
@@ -676,7 +676,7 @@ def main(opts):
 
             scheduler.step(re_tpe2e)
             f = open(save_log, 'a')
-            f.write('time epoch [%d]: %.2f s, loss_total: %.3f, re_tpe2e = %f, re_tp = %f, re_e1 = %f, precision = %f\n' % (step / batch_per_epoch, time_total,train_loss_lr/cntt,re_tpe2e, re_tp, re_e1 ,precision))
+            f.write('time epoch [%d]: %.2f s, loss_total: %.3f, lr:%f, re_tpe2e = %f, re_tp = %f, re_e1 = %f, precision = %f\n' % (step / batch_per_epoch, time_total,train_loss_lr/cntt,learning_rate,re_tpe2e, re_tp, re_e1 ,precision))
             f.close()
             print('time epoch [%d]: %.2f s, loss_total: %.3f, re_tpe2e = %f, re_tp = %f, re_e1 = %f, precision = %f' % (step / batch_per_epoch, time_total,train_loss_lr/cntt,re_tpe2e, re_tp, re_e1 ,precision))
             #print('time epoch [%d]: %.2f s, loss_total: %.3f' % (step / batch_per_epoch, time_total,train_loss_lr/cntt))
