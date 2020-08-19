@@ -447,7 +447,9 @@ def main(opts):
         ctc_loss.to(device)
     learning_rate = opts.base_lr
     optimizer = torch.optim.Adam(net.parameters(), lr=opts.base_lr, weight_decay=weight_decay)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,mode='max', factor=0.5, patience=4, verbose=True)
+    # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,mode='max', factor=0.5, patience=4, verbose=True)
+    scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr=0.0006, max_lr=0.001, step_size_up=3000,
+                                                  cycle_momentum=False)
     step_start = 0
     if os.path.exists(opts.model):
         print('loading model from %s' % args.model)
@@ -494,7 +496,7 @@ def main(opts):
     now = time.time()
 
     for step in range(step_start, opts.max_iters):
-        scheduler.batch_step()
+        # scheduler.batch_step()
 
         # batch
         images, image_fns, score_maps, geo_maps, training_masks, gtso, lbso, gt_idxs = next(data_generator)
