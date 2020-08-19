@@ -447,8 +447,7 @@ def main(opts):
         ctc_loss.to(device)
     learning_rate = opts.base_lr
     optimizer = torch.optim.Adam(net.parameters(), lr=opts.base_lr, weight_decay=weight_decay)
-    # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,mode='max', factor=0.5, patience=4, verbose=True)
-    scheduler = torch.optim.CyclicLR(optimizer,base_lr=0.0006,max_lr= 0.001,step_size = 3000)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,mode='max', factor=0.5, patience=4, verbose=True)
     step_start = 0
     if os.path.exists(opts.model):
         print('loading model from %s' % args.model)
@@ -576,6 +575,7 @@ def main(opts):
                 ctc_loss_val += ctcl.data.cpu().numpy()[0]
                 # train_loss += loss.data.cpu().numpy()[0] #net.bbox_loss.data.cpu().numpy()[0]
                 optimizer.step()
+                scheduler.step()
                 train_loss_temp = 0
                 cnt += 1
 
@@ -631,20 +631,21 @@ def main(opts):
             time_now = time.time() - now
             time_total += time_now
             now = time.time()
-            
+            for param_group in optimizer.param_groups:
+                learning_rate = param_group['lr']
             save_log = os.path.join(opts.save_path,'loss.txt')
 
             f = open(save_log, 'a')
             f.write(
-                'epoch %d[%d], loss: %.3f, bbox_loss: %.3f, seg_loss: %.3f, ang_loss: %.3f, ctc_loss: %.3f, rec: %.5f, lv2: %.3f, time: %.2f s, cnt: %d\n' % (
-                    step / batch_per_epoch, step, train_loss, bbox_loss, seg_loss, angle_loss, ctc_loss_val,
+                'epoch %d[%d], lr: %f, loss: %.3f, bbox_loss: %.3f, seg_loss: %.3f, ang_loss: %.3f, ctc_loss: %.3f, rec: %.5f, lv2: %.3f, time: %.2f s, cnt: %d\n' % (
+                    step / batch_per_epoch, step, learning_rate,train_loss, bbox_loss, seg_loss, angle_loss, ctc_loss_val,
                     good_all / max(1, gt_all), ctc_loss_val2, time_now, cnt))
             f.close()
             try:
 
                 print(
-                    'epoch %d[%d], loss: %.3f, bbox_loss: %.3f, seg_loss: %.3f, ang_loss: %.3f, ctc_loss: %.3f, rec: %.5f, lv2: %.3f, time: %.2f s,, cnt: %d' % (
-                        step / batch_per_epoch, step, train_loss, bbox_loss, seg_loss, angle_loss, ctc_loss_val,
+                    'epoch %d[%d], lr: %f, loss: %.3f, bbox_loss: %.3f, seg_loss: %.3f, ang_loss: %.3f, ctc_loss: %.3f, rec: %.5f, lv2: %.3f, time: %.2f s, cnt: %d\n' % (
+                        step / batch_per_epoch, step, learning_rate,train_loss, bbox_loss, seg_loss, angle_loss, ctc_loss_val,
                         good_all / max(1, gt_all), ctc_loss_val2, time_now, cnt))
             except:
                 import sys, traceback
