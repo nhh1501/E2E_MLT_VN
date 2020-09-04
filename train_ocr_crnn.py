@@ -124,7 +124,8 @@ def main(opts):
 
 
     if step % disp_interval == 0:
-
+      for param_group in optimizer.param_groups:
+        learning_rate = param_group['lr']
       train_loss /= cnt
       train_loss_lr += train_loss
       cntt += 1
@@ -150,7 +151,7 @@ def main(opts):
 
       for param_group in optimizer.param_groups:
         learning_rate = param_group['lr']
-        print(learning_rate)
+        # print(learning_rate)
 
       save_name = os.path.join(opts.save_path, 'OCR_{}_{}.h5'.format(model_name, step))
       state = {'step': step,
