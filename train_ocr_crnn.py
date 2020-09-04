@@ -28,8 +28,8 @@ base_lr = 0.001
 lr_decay = 0.99
 momentum = 0.9
 weight_decay = 0.0005
-batch_per_epoch = 10000
-disp_interval = 500
+batch_per_epoch = 1000
+disp_interval = 200
 
      
 def main(opts):
@@ -165,7 +165,7 @@ def main(opts):
       f = open(save_log, 'a')
       f.write('time epoch [%d]: %.2f s, loss_total: %.3f, CER = %f, WER = %f' % (step / batch_per_epoch, time_total, train_loss_lr / cntt, CER, WER))
       f.close()
-      print('time epoch [%d]: %.2f s, loss_total: %.3f, CER = %f, WER = %f' % (step / batch_per_epoch, time_total, train_loss_lr / cntt, CER, WER))
+      print('time epoch [%d]: %.2f s, loss_total: %.3f, CER = %f, WER = %f \n' % (step / batch_per_epoch, time_total, train_loss_lr / cntt, CER, WER))
       print('save model: {}'.format(save_name))
       net.train()
       time_total = 0

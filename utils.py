@@ -119,6 +119,7 @@ def train_transforms():
 
 def test_transforms():
   transform = transforms.Compose([
+    transforms.Grayscale(),
     transforms.ToTensor()
   ])
   return transform
