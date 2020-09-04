@@ -47,7 +47,9 @@ def main(opts):
                              net='densenet', )
   ctc_loss = nn.CTCLoss()
   optimizer = torch.optim.Adam(net.parameters(), lr=base_lr, weight_decay=weight_decay)
-  scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,factor=0.5 ,patience=5,verbose=True)
+  # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,factor=0.5 ,patience=5,verbose=True)
+  scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr=0.00007, max_lr=0.0003, step_size_up=3000,
+                                                cycle_momentum=False)
   step_start = 0
   if opts.cuda:
     net.to(device)
@@ -102,10 +104,11 @@ def main(opts):
     optimizer.zero_grad()
     loss.backward()
 
-    clipping_value = 0.5
+    clipping_value = 1.0
     torch.nn.utils.clip_grad_norm_(net.parameters(),clipping_value)
     if not (torch.isnan(loss) or torch.isinf(loss)):
       optimizer.step()
+      scheduler.step()
       train_loss += loss.data.cpu().numpy() #net.bbox_loss.data.cpu().numpy()[0]
       # train_loss += loss.data.cpu().numpy()[0] #net.bbox_loss.data.cpu().numpy()[0]
       cnt += 1
@@ -158,7 +161,7 @@ def main(opts):
       # scheduler.step(train_loss_lr / cntt)
       # evaluate
       CER, WER = eval_ocr_crnn(val_generator1, net)
-      scheduler.step(CER)
+      # scheduler.step(CER)
       f = open(save_log, 'a')
       f.write('time epoch [%d]: %.2f s, loss_total: %.3f, CER = %f, WER = %f' % (step / batch_per_epoch, time_total, train_loss_lr / cntt, CER, WER))
       f.close()
@@ -174,11 +177,11 @@ if __name__ == '__main__':
   
   parser.add_argument('-train_list', default='/content/data_MLT_crop/gt_vi.txt')
   parser.add_argument('-valid_list', default='/content/data_MLT_crop/gt_vi_eval.txt')
-  parser.add_argument('-save_path', default='/content/drive/My Drive/DATA_OCR/backupgru')
+  parser.add_argument('-save_path', default='/content/drive/My Drive/DATA_OCR/ocr_lstm')
   parser.add_argument('-model', default='E2E-MLT_69000.h5')
   parser.add_argument('-debug', type=int, default=0)
   parser.add_argument('-batch_size', type=int, default=8)
-  parser.add_argument('-num_readers', type=int, default=1)
+  parser.add_argument('-num_readers', type=int, default=2)
   parser.add_argument('-cuda', type=bool, default=True)
   parser.add_argument('-norm_height', type=int, default=48)
   

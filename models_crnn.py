@@ -56,7 +56,7 @@ class _TransitionBlock(nn.Sequential):
 class Densenet(nn.Module):
   def __init__(self, dropout_rate):
     super(Densenet, self).__init__()
-    self.conv1 = nn.Conv2d(3, 64, kernel_size=5, stride=2, padding=2, bias=False)
+    self.conv1 = nn.Conv2d(1, 64, kernel_size=5, stride=2, padding=2, bias=False)
 
     self.dense_block1 = _DenseBlock(nb_layers=4, nb_filter=64, growth_rate=16, dropout_rate=dropout_rate)
     self.trans_block1 = _TransitionBlock(nb_in_filter=64 + 16 * 4, nb_out_filter=128)

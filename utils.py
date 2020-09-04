@@ -108,6 +108,7 @@ def train_transforms():
 
             ],
             p=0.6),
+        transforms.Grayscale(),
         transforms.ToTensor()
 
     ])
