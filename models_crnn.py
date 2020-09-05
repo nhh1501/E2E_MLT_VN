@@ -133,7 +133,7 @@ class Decoder(nn.Module):
 
 
 class Model(nn.Module):
-  def __init__(self, num_classes, fixed_height=48, net='densenet'):
+  def __init__(self, num_classes, fixed_height=64, net='densenet'):
     super(Model, self).__init__()
     self.encoder = Encoder(net=net)
     self.decoder = Decoder(input_dim=int(fixed_height * 288 / 8), num_class=num_classes, net=net)
@@ -372,7 +372,7 @@ class ModelResNetSep_crnn(nn.Module):
     self.layer0_1[0].recompute_weights()
     self.layer0_1[2].recompute_weights()
 
-  def __init__(self, attention = False, multi_scale = True,num_classes = 400 ,fixed_height=48, net = 'densenet',):
+  def __init__(self, attention = False, multi_scale = True,num_classes = 400 ,fixed_height=64, net = 'densenet',):
     super(ModelResNetSep_crnn, self).__init__()
 
     self.inplanes = 64

@@ -81,35 +81,67 @@ def random_erode(img):
     return Image.fromarray(img)
     # return img
 
-def train_transforms():
-    transform = transforms.Compose([
+def train_transforms(is_crnn = True):
+    if is_crnn:
+        transform = transforms.Compose([
 
-        transforms.RandomApply(
-            [
-                random_dilate,
-            ],
-            p=0.15),
+            transforms.RandomApply(
+                [
+                    random_dilate,
+                ],
+                p=0.15),
 
-        transforms.RandomApply(
-            [
-                random_erode,
-            ],
-            p=0.15),
+            transforms.RandomApply(
+                [
+                    random_erode,
+                ],
+                p=0.15),
 
-        transforms.RandomAffine(degrees=3, scale=(0.95, 1.05), shear=3, resample=Image.NEAREST, fillcolor=(255,255,255)),
-        # transforms.RandomApply(
-        #     [
-        #         to_array,
-        #     ],
-        #     p=1),
-        transforms.RandomApply(
-            [
-                ImgAugTransform(),
+            transforms.RandomAffine(degrees=3, scale=(0.95, 1.05), shear=3, resample=Image.NEAREST, fillcolor=(255,255,255)),
+            # transforms.RandomApply(
+            #     [
+            #         to_array,
+            #     ],
+            #     p=1),
+            transforms.RandomApply(
+                [
+                    ImgAugTransform(),
 
-            ],
-            p=0.6),
-        transforms.Grayscale(),
-        transforms.ToTensor()
+                ],
+                p=0.6),
+            transforms.Grayscale(),
+            transforms.ToTensor()
+
+            ])
+    else:
+        transform = transforms.Compose([
+
+            transforms.RandomApply(
+                [
+                    random_dilate,
+                ],
+                p=0.15),
+
+            transforms.RandomApply(
+                [
+                    random_erode,
+                ],
+                p=0.15),
+
+            transforms.RandomAffine(degrees=3, scale=(0.95, 1.05), shear=3, resample=Image.NEAREST,
+                                    fillcolor=(255, 255, 255)),
+            # transforms.RandomApply(
+            #     [
+            #         to_array,
+            #     ],
+            #     p=1),
+            transforms.RandomApply(
+                [
+                    ImgAugTransform(),
+
+                ],
+                p=0.6),
+            transforms.ToTensor()
 
     ])
 
@@ -117,12 +149,18 @@ def train_transforms():
 
     return transform
 
-def test_transforms():
-  transform = transforms.Compose([
-    transforms.Grayscale(),
-    transforms.ToTensor()
-  ])
-  return transform
+
+def test_transforms(is_crnn = True):
+    if is_crnn:
+        transform = transforms.Compose([
+        transforms.Grayscale(),
+        transforms.ToTensor()
+      ])
+    else:
+        transform = transforms.Compose([
+        transforms.ToTensor()
+        ])
+    return transform
 
 
 def cut_image(img, new_size, word_gto):
@@ -167,12 +205,12 @@ def cut_image(img, new_size, word_gto):
   return crop_img
 
 class ocrDataset(Dataset):
-    def __init__(self, root, norm_height = 48,in_train = True, target_transform=None):
+    def __init__(self, root, norm_height = 48,in_train = True, target_transform=None,is_crnn = True):
         self.norm_height = norm_height
         self.path = self.get_path(root)
         self.root = root
-        self.train_transform = train_transforms()
-        self.test_transform = test_transforms()
+        self.train_transform = train_transforms(is_crnn)
+        self.test_transform = test_transforms(is_crnn)
         self.in_train = in_train
         self.target_transform = target_transform
 

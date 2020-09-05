@@ -556,7 +556,7 @@ def eval_ocr_crnn(ocrdataloader,net):
     CER = distance_sum / len_cer
     return CER, WER
 
-def evaluate_e2e(root, net, norm_height = 44,name_model='E2E', normalize= False ,save = False, cuda= True,save_dir = 'eval'):
+def evaluate_e2e(root, net, norm_height = 40,name_model='E2E', normalize= False ,save = False, cuda= True,save_dir = 'eval'):
   #Decription : evaluate model E2E
   net = net.eval()
   # if cuda:

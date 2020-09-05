@@ -25,9 +25,9 @@ def load_net(fname, net, optimizer=None):
     learning_rate = 0.001
   opt_state = sp['optimizer']
   sp = sp['state_dict']
-  for k, v in net.state_dict().items():
+  for k, v in net.state_dict().items() :
     try:
-      if k in sp:
+      if (k in sp) and (sp[k].size() == v.size()):
         param = sp[k]
         v.copy_(param)
         # print(v.size())
