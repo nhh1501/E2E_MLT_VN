@@ -35,7 +35,7 @@ base_lr = 0.0001
 lr_decay = 0.99
 momentum = 0.9
 weight_decay = 0.0005
-batch_per_epoch = 5000
+batch_per_epoch = 15
 disp_interval = 10
 
      

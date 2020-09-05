@@ -184,7 +184,7 @@ if __name__ == '__main__':
   parser.add_argument('-batch_size', type=int, default=8)
   parser.add_argument('-num_readers', type=int, default=2)
   parser.add_argument('-cuda', type=bool, default=True)
-  parser.add_argument('-norm_height', type=int, default=48)
+  parser.add_argument('-norm_height', type=int, default=64)
   
   args = parser.parse_args()  
   main(args)

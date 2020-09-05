@@ -118,7 +118,7 @@ class Decoder(nn.Module):
   def __init__(self, input_dim, hidden_dim=512, num_class=200, relation_aware=False, net='densenet'):
     super(Decoder, self).__init__()
     if net == 'densenet':
-      input_dim = 288 * 6
+      input_dim = 288 * 8
     elif net == 'efficientnet':
       input_dim = 320 * 2
     self.rnn1 = BidirectionalLSTM(input_dim, hidden_dim, hidden_dim)
