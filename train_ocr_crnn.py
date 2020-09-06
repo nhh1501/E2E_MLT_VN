@@ -77,7 +77,7 @@ def main(opts):
   data_generator1 = torch.utils.data.DataLoader(data_dataset, batch_size=opts.batch_size, shuffle=True,
                                              collate_fn=alignCollate())
   val_dataset = ocrDataset(root=opts.valid_list, norm_height=opts.norm_height , in_train=False)
-  val_generator1 = torch.utils.data.DataLoader(val_dataset, batch_size=opts.batch_size, shuffle=False,
+  val_generator1 = torch.utils.data.DataLoader(val_dataset, batch_size=1, shuffle=False,
                                              collate_fn=alignCollate())
 
 
