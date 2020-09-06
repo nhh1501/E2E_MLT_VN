@@ -123,8 +123,8 @@ base_lr = 0.0001
 lr_decay = 0.99
 momentum = 0.9
 weight_decay = 0.0005
-batch_per_epoch = 15
-disp_interval = 10
+batch_per_epoch = 1000
+disp_interval = 200
 converter = strLabelConverter(codec)
      
 def main(opts):
@@ -223,6 +223,8 @@ def main(opts):
     
     
     if step % disp_interval == 0:
+      for param_group in optimizer.param_groups:
+        learning_rate = param_group['lr']
         
       train_loss /= cnt
       train_loss_lr += train_loss
@@ -248,7 +250,7 @@ def main(opts):
       net.train()
       for param_group in optimizer.param_groups:
         learning_rate = param_group['lr']
-        print(learning_rate)
+        # print(learning_rate)
 
       save_name = os.path.join(opts.save_path, '{}_{}.h5'.format(model_name, step))
       state = {'step': step,
@@ -259,7 +261,7 @@ def main(opts):
       print('save model: {}'.format(save_name))
       save_logg = os.path.join(opts.save_path, 'note_eval.txt')
       fe = open(save_logg, 'a')
-      fe.write('time epoch [%d]: %.2f s, loss_total: %.3f, CER = %f, WER = %f' % (
+      fe.write('time epoch [%d]: %.2f s, loss_total: %.3f, CER = %f, WER = %f\n' % (
       step / batch_per_epoch, time_total, train_loss_lr / cntt, CER, WER))
       fe.close()
       print('time epoch [%d]: %.2f s, loss_total: %.3f, CER = %f, WER = %f' % (
