@@ -257,12 +257,21 @@ class ocrDataset(Dataset):
 
         im = cv2.imread(image_name)
         im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
-        im = im[2:im.shape[0]-2,:,:]
-        scale = self.norm_height / float(im.shape[0])
-        width = int(im.shape[1] * scale)
+        # im = im[2:im.shape[0]-2,:,:]
 
-        im = cv2.resize(im, (int(width), self.norm_height))
-        image = PIL.Image.fromarray(np.uint8(im))
+        # im_zero = np.zeros((self.norm_height,im.shape[1],3), np.uint8)
+        if self.norm_height > im.shape[0]:
+
+            im_samp = np.ones((self.norm_height,im.shape[1],3), np.uint8)*255
+            rand = np.random.randint(0,self.norm_height - im.shape[0])
+            im_samp[rand:rand + im.shape[0],:,:] = im
+        else:
+
+            scale = self.norm_height / float(im.shape[0])
+            width = int(im.shape[1] * scale)
+            im_samp = cv2.resize(im, (int(width), self.norm_height))
+
+        image = PIL.Image.fromarray(np.uint8(im_samp))
         # image = np.asarray(im, dtype=np.float32)
         # image /= 128
         # image -= 1

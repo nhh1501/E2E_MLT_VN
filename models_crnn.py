@@ -52,6 +52,20 @@ class _TransitionBlock(nn.Sequential):
 
     self.add_module('pool', nn.AvgPool2d(kernel_size=2, stride=2))
 
+class _TransitionBlock_xxx(nn.Sequential):
+  def __init__(self, nb_in_filter, nb_out_filter, dropout_rate=None):
+    super(_TransitionBlock_xxx, self).__init__()
+
+    self.add_module('norm', nn.BatchNorm2d(nb_in_filter))
+    self.add_module('relu', nn.ReLU(inplace=True))
+    self.add_module('conv', nn.Conv2d(nb_in_filter, nb_out_filter, kernel_size=1, stride=1, bias=False))
+
+    self.add_module('pool', nn.AvgPool2d((2, 1), stride=(2, 1)))
+    # self.add_module('pool', nn.AvgPool2d((2, 2), (2, 1), (0, 0)))
+    # self.add_module('pool', nn.AvgPool2d(kernel_size=2, stride=2))
+
+    # nn.MaxPool2d((2, 1), stride=(2, 1))
+    # nn.MaxPool2d((2, 2), (2, 1), (0, 0))
 
 class Densenet(nn.Module):
   def __init__(self, dropout_rate):
@@ -62,7 +76,8 @@ class Densenet(nn.Module):
     self.trans_block1 = _TransitionBlock(nb_in_filter=64 + 16 * 4, nb_out_filter=128)
 
     self.dense_block2 = _DenseBlock(nb_layers=6, nb_filter=128, growth_rate=16, dropout_rate=dropout_rate)
-    self.trans_block2 = _TransitionBlock(nb_in_filter=128 + 16 * 6, nb_out_filter=224)
+    # self.trans_block2 = _TransitionBlock(nb_in_filter=128 + 16 * 6, nb_out_filter=224)
+    self.trans_block2 = _TransitionBlock_xxx(nb_in_filter=128 + 16 * 6, nb_out_filter=224)
 
     self.dense_block3 = _DenseBlock(nb_layers=4, nb_filter=224, growth_rate=16, dropout_rate=dropout_rate)
 
@@ -82,6 +97,115 @@ class Densenet(nn.Module):
     src = F.relu(self.batch_norm4(out), inplace=True)
     return src
 
+class Densenet1(nn.Module):
+  def __init__(self, dropout_rate):
+    super(Densenet1, self).__init__()
+    self.conv1 = nn.Conv2d(1, 64, kernel_size=5, stride=2, padding=2, bias=False)
+
+    self.dense_block1 = _DenseBlock(nb_layers=4, nb_filter=64, growth_rate=16, dropout_rate=dropout_rate)
+    self.trans_block1 = _TransitionBlock(nb_in_filter=64 + 16 * 4, nb_out_filter=128)
+
+    self.dense_block2 = _DenseBlock(nb_layers=6, nb_filter=128, growth_rate=16, dropout_rate=dropout_rate)
+    self.trans_block2 = _TransitionBlock_xxx(nb_in_filter=128 + 16 * 6, nb_out_filter=224)
+
+    self.dense_block3 = _DenseBlock(nb_layers=6, nb_filter=224, growth_rate=16, dropout_rate=dropout_rate)
+    self.trans_block3 = _TransitionBlock_xxx(nb_in_filter=224 + 16 * 6, nb_out_filter=320)
+
+    self.dense_block4 = _DenseBlock(nb_layers=4, nb_filter=320, growth_rate=16, dropout_rate=dropout_rate)
+
+    self.batch_norm4 = nn.BatchNorm2d(384)
+    ##? 384*4
+  def forward(self, input):
+    out = self.conv1(input[:, :, :, :] - 0.5)
+
+    out = self.dense_block1(out)
+    out = self.trans_block1(out)
+
+    out = self.dense_block2(out)
+    out = self.trans_block2(out)
+
+    out = self.dense_block3(out)
+    out = self.trans_block3(out)
+
+    out = self.dense_block4(out)
+
+
+    src = F.relu(self.batch_norm4(out), inplace=True)
+    return src
+
+class Densenet2(nn.Module):
+    def __init__(self, dropout_rate):
+      super(Densenet2, self).__init__()
+      self.conv1 = nn.Conv2d(1, 64, kernel_size=5, stride=2, padding=2, bias=False)
+
+      self.dense_block1 = _DenseBlock(nb_layers=2, nb_filter=64, growth_rate=16, dropout_rate=dropout_rate)
+      self.trans_block1 = _TransitionBlock(nb_in_filter=64 + 16 * 2, nb_out_filter=96)
+
+      self.dense_block2 = _DenseBlock(nb_layers=4, nb_filter=96, growth_rate=16, dropout_rate=dropout_rate)
+      self.trans_block2 = _TransitionBlock_xxx(nb_in_filter=96 + 16 * 4, nb_out_filter=160)
+
+      self.dense_block3 = _DenseBlock(nb_layers=8, nb_filter=160, growth_rate=16, dropout_rate=dropout_rate)
+      self.trans_block3 = _TransitionBlock_xxx(nb_in_filter=160 + 16 * 8, nb_out_filter=288)
+
+      self.dense_block4 = _DenseBlock(nb_layers=6, nb_filter=288, growth_rate=16, dropout_rate=dropout_rate)
+
+      self.batch_norm4 = nn.BatchNorm2d(384)
+    ##? 384*4
+    def forward(self, input):
+      out = self.conv1(input[:, :, :, :] - 0.5)
+
+      out = self.dense_block1(out)
+      out = self.trans_block1(out)
+
+      out = self.dense_block2(out)
+      out = self.trans_block2(out)
+
+      out = self.dense_block3(out)
+      out = self.trans_block3(out)
+
+      out = self.dense_block4(out)
+
+      src= F.relu(self.batch_norm4(out), inplace=True)
+      # out= F.relu(self.batch_norm4(out), inplace=True)
+      # src = F.adaptive_avg_pool2d(out, (1, 1))
+      return src
+
+class Densenet3(nn.Module):
+  def __init__(self, dropout_rate):
+    super(Densenet3, self).__init__()
+    self.conv1 = nn.Conv2d(1, 64, kernel_size=5, stride=2, padding=2, bias=False)
+
+    self.dense_block1 = _DenseBlock(nb_layers=2, nb_filter=64, growth_rate=16, dropout_rate=dropout_rate)
+    self.trans_block1 = _TransitionBlock(nb_in_filter=64 + 16 * 2, nb_out_filter=96)
+
+    self.dense_block2 = _DenseBlock(nb_layers=4, nb_filter=96, growth_rate=16, dropout_rate=dropout_rate)
+    self.trans_block2 = _TransitionBlock_xxx(nb_in_filter=96 + 16 * 4, nb_out_filter=160)
+
+    self.dense_block3 = _DenseBlock(nb_layers=8, nb_filter=160, growth_rate=16, dropout_rate=dropout_rate)
+    self.trans_block3 = _TransitionBlock_xxx(nb_in_filter=160 + 16 * 8, nb_out_filter=288)
+
+    self.dense_block4 = _DenseBlock(nb_layers=6, nb_filter=288, growth_rate=16, dropout_rate=dropout_rate)
+
+    self.batch_norm4 = nn.BatchNorm2d(384)
+
+  def forward(self, input):
+    out = self.conv1(input[:, :, :, :] - 0.5)
+
+    out = self.dense_block1(out)
+    out = self.trans_block1(out)
+
+    out = self.dense_block2(out)
+    out = self.trans_block2(out)
+
+    out = self.dense_block3(out)
+    out = self.trans_block3(out)
+
+    out = self.dense_block4(out)
+
+    # src = F.relu(self.batch_norm4(out), inplace=True)
+    out = F.relu(self.batch_norm4(out), inplace=True)
+    src = F.avg_pool2d(out, kernel_size=(4, 1), stride=(4, 1))
+    return src
 
 class BidirectionalLSTM(nn.Module):
   def __init__(self, num_features, hidden_size, output_size):
@@ -106,6 +230,12 @@ class Encoder(nn.Module):
     super(Encoder, self).__init__()
     if net == 'densenet':
       self.model = Densenet(dropout_rate=dropout_rate)
+    if net == 'densenet1':
+      self.model = Densenet1(dropout_rate=dropout_rate)
+    if net == 'densenet2':
+      self.model = Densenet2(dropout_rate=dropout_rate)
+    if net == 'densenet3':
+      self.model = Densenet3(dropout_rate=dropout_rate)
     # elif net == 'efficientnet':
       # self.model = EfficientNet.from_name('efficientnet-b0')
 
@@ -115,10 +245,16 @@ class Encoder(nn.Module):
 
 
 class Decoder(nn.Module):
-  def __init__(self, input_dim, hidden_dim=512, num_class=200, relation_aware=False, net='densenet'):
+  def __init__(self, input_dim, hidden_dim=256, num_class=200, relation_aware=False, net='densenet'):
     super(Decoder, self).__init__()
     if net == 'densenet':
       input_dim = 288 * 8
+    if net == 'densenet1':
+      input_dim = 384 * 4
+    if net == 'densenet2':
+      input_dim = 384 * 4
+    if net == 'densenet3':
+      input_dim = 384 * 1
     elif net == 'efficientnet':
       input_dim = 320 * 2
     self.rnn1 = BidirectionalLSTM(input_dim, hidden_dim, hidden_dim)
