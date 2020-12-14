@@ -1,2 +1,5 @@
-*.h linguist-language=false
-*.cpp linguist-language=false
+nms/*.h linguist-language=false
+nms/include/pybind11/*.h linguist-language=false
+nms/include/pybind11/detail/*.h linguist-language=false
+nms/*.cpp linguist-language=false
+nms/include/clipper/*.cpp linguist-language=false
