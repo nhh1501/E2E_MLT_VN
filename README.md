@@ -21,16 +21,15 @@ This repositories was edited form E2E-MLT repositories of MichalBusta
 
   - python3.x with
   - opencv-python
-  - pytorch 0.4.1
   - torchvision
-  - warp-ctc (https://github.com/SeanNaren/warp-ctc/)
 
 
 ## Data
 
  - [SynthText - Vietnamese generator](https://github.com/nhh1501/SynthText-vietnamese)
  - [Text Recognize generator](https://github.com/Belval/TextRecognitionDataGenerator)
-I used the generators above to generate the Vietnamese language for this task
+ 
+ I used the generators above to generate the Vietnamese language for this task
 
 
 ## Acknowledgments
