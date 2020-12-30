@@ -1,9 +1,9 @@
-# E2E-MLT
- E2E-MLT - an Unconstrained End-to-End Method for Multi-Language Scene Text
-code base for:  https://arxiv.org/abs/1801.09919
-
 This repositories was edited form E2E-MLT repositories of MichalBusta
 
+# E2E-MLT
+
+ an Unconstrained End-to-End Method for Multi-Language Scene Text
+code base for:  https://arxiv.org/abs/1801.09919
 
 ```
 @@inproceedings{buvsta2018e2e,
@@ -26,8 +26,12 @@ This repositories was edited form E2E-MLT repositories of MichalBusta
 
 ## Data
 
- - [SynthText - Vietnamese generator](https://github.com/nhh1501/SynthText-vietnamese)
- - [Text Recognize generator](https://github.com/Belval/TextRecognitionDataGenerator)
+ - [SynthText - Vietnamese generator](https://github.com/nhh1501/SynthText-vietnamese) (Dataset for Text Localization and Text Recognition)
+ - [Text Recognize generator](https://github.com/Belval/TextRecognitionDataGenerator)  (Dataset for Text Recognition)
+ 
+ ![MLT SynthSet](images/data_gen1.png)
+ 
+ ![Cut_form_MLT SynthSet](images/batman_80_0_0.jpg)
  
  I used the generators above to generate the Vietnamese language for this task
 
